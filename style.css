@@ -1,7 +1,48 @@
-/* The appearance of the Bead Jar app. Empty-ish for now — Phase 1 fills this in. */
+/* The appearance of the Bead Jar app. */
 
 body {
   font-family: system-ui, sans-serif;
   text-align: center;
   background: #f5f0e8;
 }
+
+.subtitle {
+  color: #8a8378;
+}
+
+/* The jar: a glassy box that beads stack up inside. */
+.jar {
+  box-sizing: border-box;      /* width/height include the border */
+  width: 280px;
+  height: 360px;
+  margin: 2rem auto;           /* auto left/right = centered */
+  padding: 10px;
+  background: rgba(190, 215, 230, 0.35);   /* translucent "glass" */
+  border: 6px solid rgba(120, 150, 170, 0.5);
+  border-top-width: 16px;                  /* thicker top = the rim */
+  border-radius: 16px 16px 44px 44px;      /* rounder at the bottom */
+
+  /* Gravity, faked with flexbox: lay beads out in rows,
+     but start wrapping from the BOTTOM up. */
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Every bead: a circle with a shine. */
+.bead {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;          /* corners so round it's a circle */
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Each color: a radial gradient = light spot up-left, darker rim.
+   That one trick makes a flat circle look like a 3D bead. */
+.bead.red    { background: radial-gradient(circle at 35% 30%, #ffa1a1, #d64545 75%); }
+.bead.blue   { background: radial-gradient(circle at 35% 30%, #9ec9ff, #3a72c9 75%); }
+.bead.yellow { background: radial-gradient(circle at 35% 30%, #ffe9a1, #e0a92e 75%); }
+.bead.green  { background: radial-gradient(circle at 35% 30%, #a9e8b0, #3d9c50 75%); }
+.bead.purple { background: radial-gradient(circle at 35% 30%, #d3b5f5, #8a4fc7 75%); }
