@@ -75,7 +75,7 @@ also installs on a phone (a Progressive Web App, or PWA).
 - [x] Phase 0 — Foundations *(2026-07-05)*
 - [x] Phase 1 — A jar you can see *(2026-07-05)*
 - [x] Phase 2 — A jar you can use *(2026-07-05)*
-- [ ] Phase 3 — A jar that remembers
+- [x] Phase 3 — A jar that remembers *(2026-07-05)*
 - [ ] Phase 4 — Real habits
 - [ ] Phase 5 — Delight
 - [ ] Phase 6 — On your phone
