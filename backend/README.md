@@ -77,7 +77,24 @@ aws lambda update-function-code \
   --function-name bead-jar-hello --zip-file fileb://function.zip
 ```
 
-## Why Phase 8 exists
+## Phase 8 — the real API, in Terraform
+
+Everything lives in `terraform/main.tf`: DynamoDB table `bead-jar-data`,
+Lambda `bead-jar-api` (code in `api/index.mjs`), and an API Gateway
+HTTP API with `GET`/`PUT /jars/{syncId}` routes.
+
+Live at: https://g4tul8gnh2.execute-api.us-east-1.amazonaws.com
+
+```sh
+cd terraform
+terraform plan    # preview what would change
+terraform apply   # make reality match main.tf (also redeploys code changes)
+```
+
+The state files (`*.tfstate`) are Terraform's memory of what it built —
+they stay out of git (see .gitignore) and must not be deleted.
+
+## Why Phase 8 existed
 
 Count the commands above. That was ONE function with no database, no
 routes, no stages. Phase 8 replaces this ritual with one template file

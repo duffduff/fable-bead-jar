@@ -81,11 +81,12 @@ to maintain, and effectively free at our scale.
 
 ## Phase 8 — A real API *(infrastructure as code)*
 
-- Feel the pain of hand-run commands, then fix it: define everything in a
-  SAM/CloudFormation template that deploys with one command.
+- Feel the pain of hand-run commands, then fix it: declare everything in
+  Terraform and deploy with one command.
 - A DynamoDB table to store jars, and real endpoints:
-  `GET /jars/{syncId}` and `PUT /jars/{syncId}`.
-- **You'll learn:** infrastructure as code, NoSQL basics, API design.
+  `GET /jars/{syncId}` and `PUT /jars/{syncId}` behind API Gateway.
+- **You'll learn:** infrastructure as code with Terraform (plan/apply,
+  state), NoSQL basics, API design.
 
 ## Phase 9 — Connect the app *(sync)*
 
@@ -111,6 +112,6 @@ to maintain, and effectively free at our scale.
 - [x] Phase 5 — Delight *(2026-07-05)*
 - [x] Phase 6 — On your phone *(2026-07-05)*
 - [x] Phase 7 — Hello, Lambda *(2026-07-05)*
-- [ ] Phase 8 — A real API
+- [x] Phase 8 — A real API *(2026-07-05)*
 - [ ] Phase 9 — Connect the app
 - [ ] Phase 10 — Hardening
