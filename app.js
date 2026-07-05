@@ -51,6 +51,33 @@ function addBead(jarData) {
   jarData.beads = jarData.beads + 1;
   saveJars();
   render();
+
+  // render() rebuilt everything, so find this jar's card again and
+  // tag its newest bead with the class that carries the drop animation.
+  const card = jarList.querySelector('.jar-card[data-id="' + jarData.id + '"]');
+  const newBead = card.querySelector(".jar").lastElementChild;
+  if (newBead) newBead.classList.add("drop");
+
+  // Just hit the goal? Throw confetti (after the bead has landed).
+  if (jarData.beads === jarData.goal) {
+    setTimeout(() => celebrate(card), 400);
+  }
+}
+
+// Rain confetti pieces down over a jar's card.
+function celebrate(card) {
+  const colors = ["#d64545", "#3a72c9", "#e0a92e", "#3d9c50", "#8a4fc7"];
+  for (let i = 0; i < 40; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = Math.random() * 0.4 + "s";
+    // Each piece drifts sideways a random amount; the CSS reads this variable.
+    piece.style.setProperty("--drift", (Math.random() * 160 - 80) + "px");
+    card.appendChild(piece);
+    setTimeout(() => piece.remove(), 3000);   // clean up after the show
+  }
 }
 
 function removeBead(jarData) {
@@ -97,6 +124,10 @@ function deleteJar(jarData) {
 function renderJarCard(jarData) {
   const card = document.createElement("section");
   card.className = "jar-card";
+  card.dataset.id = jarData.id;              // name tag: which jar is this card?
+  if (jarData.beads >= jarData.goal) {
+    card.classList.add("full");              // CSS gives full jars a golden glow
+  }
 
   // The fixed skeleton of a card. Names and counts are filled in below
   // with textContent, never pasted into this HTML string — that way a

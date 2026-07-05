@@ -51,6 +51,14 @@ button:disabled {
   border-radius: 16px;
   padding: 16px 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;          /* confetti positions itself inside the card */
+  overflow: hidden;            /* ...and gets clipped at the card's edges */
+}
+
+/* A jar that reached its goal glows gold. */
+.jar-card.full .jar {
+  border-color: rgba(224, 169, 46, 0.8);
+  box-shadow: 0 0 18px rgba(224, 169, 46, 0.55);
 }
 
 .jar-name {
@@ -132,6 +140,46 @@ button:disabled {
 
 /* Each color: a radial gradient = light spot up-left, darker rim.
    That one trick makes a flat circle look like a 3D bead. */
+/* The newest bead falls in from above the jar and bounces once.
+   @keyframes describe snapshots of the motion; the browser fills
+   in every frame between them. */
+.bead.drop {
+  animation: drop 0.45s cubic-bezier(0.3, 0, 0.7, 1);
+}
+
+@keyframes drop {
+  from { transform: translateY(-230px); }  /* start above the jar */
+  60%  { transform: translateY(0); }       /* land */
+  78%  { transform: translateY(-10px); }   /* small bounce up */
+  to   { transform: translateY(0); }       /* settle */
+}
+
+/* --- Confetti --- */
+
+.confetti {
+  position: absolute;
+  top: -14px;                  /* start just above the card */
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;        /* can't be clicked, never blocks buttons */
+  animation: confetti-fall 2.2s ease-in forwards;
+}
+
+@keyframes confetti-fall {
+  to {
+    /* fall past the card bottom, drifting sideways and tumbling */
+    transform: translateY(440px) translateX(var(--drift)) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Respect users who turn off animations in their system settings. */
+@media (prefers-reduced-motion: reduce) {
+  .bead.drop { animation: none; }
+  .confetti { display: none; }
+}
+
 .bead.red    { background: radial-gradient(circle at 35% 30%, #ffa1a1, #d64545 75%); }
 .bead.blue   { background: radial-gradient(circle at 35% 30%, #9ec9ff, #3a72c9 75%); }
 .bead.yellow { background: radial-gradient(circle at 35% 30%, #ffe9a1, #e0a92e 75%); }
