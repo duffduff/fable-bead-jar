@@ -10,15 +10,9 @@ body {
   color: #8a8378;
 }
 
-/* The row of buttons + counter under the jar. */
-.controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-}
+/* --- Buttons --- */
 
-.controls button {
+button {
   font-size: 1rem;
   padding: 10px 18px;
   border: none;
@@ -28,33 +22,55 @@ body {
   cursor: pointer;
 }
 
-.controls button:hover {
+button:hover {
   background: #3d7a4d;
 }
 
-.controls button:disabled {
+button:disabled {
   background: #c9c3b8;
   cursor: default;
 }
 
-#counter {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #5a5348;
-  min-width: 70px;             /* so the row doesn't shift as digits change */
+#new-jar {
+  margin-bottom: 24px;
 }
 
-/* The jar: a glassy box that beads stack up inside. */
+/* --- The list of jar cards --- */
+
+#jar-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 0 16px 32px;
+}
+
+.jar-card {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.jar-name {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  color: #5a5348;
+}
+
+/* --- One jar: a glassy box that beads stack up inside --- */
+
 .jar {
   box-sizing: border-box;      /* width/height include the border */
-  width: 280px;
-  height: 360px;
-  margin: 2rem auto;           /* auto left/right = centered */
-  padding: 10px;
+  width: 200px;
+  height: 240px;
+  margin: 0 auto 12px;
+  padding: 8px;
   background: rgba(190, 215, 230, 0.35);   /* translucent "glass" */
-  border: 6px solid rgba(120, 150, 170, 0.5);
-  border-top-width: 16px;                  /* thicker top = the rim */
-  border-radius: 16px 16px 44px 44px;      /* rounder at the bottom */
+  border: 5px solid rgba(120, 150, 170, 0.5);
+  border-top-width: 12px;                  /* thicker top = the rim */
+  border-radius: 12px 12px 32px 32px;      /* rounder at the bottom */
 
   /* Gravity, faked with flexbox: lay beads out in rows,
      but start wrapping from the BOTTOM up. */
@@ -62,13 +78,54 @@ body {
   flex-wrap: wrap-reverse;
   align-content: flex-start;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-/* Every bead: a circle with a shine. */
+/* --- The +/- controls and counter under each jar --- */
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.controls button {
+  padding: 8px 16px;
+}
+
+.count {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #5a5348;
+  min-width: 64px;             /* so the row doesn't shift as digits change */
+}
+
+/* --- Rename / delete --- */
+
+.card-actions {
+  margin: 12px 0 0;
+}
+
+.card-actions button {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  margin: 0 4px;
+  background: transparent;
+  color: #8a8378;
+  border: 1px solid #c9c3b8;
+}
+
+.card-actions button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #5a5348;
+}
+
+/* --- Beads: circles with a shine --- */
+
 .bead {
-  width: 46px;
-  height: 46px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;          /* corners so round it's a circle */
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
 }
