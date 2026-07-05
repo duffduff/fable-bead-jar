@@ -73,7 +73,7 @@ also installs on a phone (a Progressive Web App, or PWA).
 ## Progress
 
 - [x] Phase 0 — Foundations *(2026-07-05)*
-- [ ] Phase 1 — A jar you can see
+- [x] Phase 1 — A jar you can see *(2026-07-05)*
 - [ ] Phase 2 — A jar you can use
 - [ ] Phase 3 — A jar that remembers
 - [ ] Phase 4 — Real habits
