@@ -1,0 +1,7 @@
+/* The appearance of the Bead Jar app. Empty-ish for now — Phase 1 fills this in. */
+
+body {
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  background: #f5f0e8;
+}
