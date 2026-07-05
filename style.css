@@ -10,6 +10,40 @@ body {
   color: #8a8378;
 }
 
+/* The row of buttons + counter under the jar. */
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+
+.controls button {
+  font-size: 1rem;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #4a8f5c;
+  color: white;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  background: #3d7a4d;
+}
+
+.controls button:disabled {
+  background: #c9c3b8;
+  cursor: default;
+}
+
+#counter {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #5a5348;
+  min-width: 70px;             /* so the row doesn't shift as digits change */
+}
+
 /* The jar: a glassy box that beads stack up inside. */
 .jar {
   box-sizing: border-box;      /* width/height include the border */
