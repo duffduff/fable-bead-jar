@@ -78,5 +78,5 @@ also installs on a phone (a Progressive Web App, or PWA).
 - [x] Phase 3 — A jar that remembers *(2026-07-05)*
 - [x] Phase 4 — Real habits *(2026-07-05)*
 - [x] Phase 5 — Delight *(2026-07-05)*
-- [ ] Phase 6 — On your phone
+- [x] Phase 6 — On your phone *(2026-07-05)*
 - [ ] Phase 7 — Stretch goals

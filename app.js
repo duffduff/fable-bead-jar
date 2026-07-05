@@ -181,3 +181,9 @@ function render() {
 // --- Start up ---
 newJarButton.addEventListener("click", createJar);
 render();
+
+// Register the service worker (sw.js) so the app works offline.
+// Old browsers without support just skip this — the app still works online.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
