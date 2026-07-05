@@ -64,11 +64,42 @@ also installs on a phone (a Progressive Web App, or PWA).
   phone home screen** and works offline.
 - **You'll learn:** responsive design, what makes a web app "installable".
 
-## Phase 7 — Stretch goals *(only if wanted)*
+## Part II — A real backend (serverless on AWS)
 
-- Sync between devices (this is where a server/account would enter).
-- Multiple users / family sharing.
-- Reward pictures ("when full: trip to the zoo").
+Goal: jars that sync between devices. The app talks to an API built on
+AWS Lambda — code that runs in the cloud only when called, with no server
+to maintain, and effectively free at our scale.
+
+## Phase 7 — Hello, Lambda *(the primitives, by hand)*
+
+- One tiny function deployed to AWS with raw CLI commands — no frameworks —
+  so every moving part is visible: the code zip, the IAM role (its
+  permission badge), the function, and a public URL.
+- Call it from the terminal and see it respond from the cloud.
+- **You'll learn:** what "serverless" actually means, IAM roles, and what
+  a Lambda is under the costume.
+
+## Phase 8 — A real API *(infrastructure as code)*
+
+- Feel the pain of hand-run commands, then fix it: define everything in a
+  SAM/CloudFormation template that deploys with one command.
+- A DynamoDB table to store jars, and real endpoints:
+  `GET /jars/{syncId}` and `PUT /jars/{syncId}`.
+- **You'll learn:** infrastructure as code, NoSQL basics, API design.
+
+## Phase 9 — Connect the app *(sync)*
+
+- The frontend gets a "sync code": jars save to the cloud and load on any
+  device with the same code. localStorage stays as the offline copy.
+- Deploy the frontend to real hosting (GitHub Pages) so your phone can
+  finally install the PWA.
+- **You'll learn:** fetch(), CORS, and thinking about conflicts/merging.
+
+## Phase 10 — Hardening *(only if wanted)*
+
+- Input validation, rate limiting, real accounts instead of sync codes,
+  cost alarms.
+- **You'll learn:** what separates a demo API from one you'd give strangers.
 
 ## Progress
 
@@ -79,4 +110,7 @@ also installs on a phone (a Progressive Web App, or PWA).
 - [x] Phase 4 — Real habits *(2026-07-05)*
 - [x] Phase 5 — Delight *(2026-07-05)*
 - [x] Phase 6 — On your phone *(2026-07-05)*
-- [ ] Phase 7 — Stretch goals
+- [x] Phase 7 — Hello, Lambda *(2026-07-05)*
+- [ ] Phase 8 — A real API
+- [ ] Phase 9 — Connect the app
+- [ ] Phase 10 — Hardening
