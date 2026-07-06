@@ -67,9 +67,13 @@ body {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
 }
 
-/* The newest bead falls in from above the jar and bounces once. */
+/* The newest beads fall in from above the jar and bounce once.
+   fill-mode backwards = while a bead waits out its animation-delay
+   (multi-bead awards drop one by one), it holds the "from" pose
+   above the jar instead of appearing landed and then jumping. */
 .bead.drop {
   animation: drop 0.45s cubic-bezier(0.3, 0, 0.7, 1);
+  animation-fill-mode: backwards;
 }
 
 @keyframes drop {
@@ -100,7 +104,33 @@ body {
   font-style: italic;
 }
 
-/* --- Behavior chips: click one to award a bead --- */
+/* --- The count stepper: how many beads the next award gives --- */
+
+.count-picker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: #5a5348;
+}
+
+.count-picker button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+#count-display {
+  font-size: 1.25rem;
+  font-weight: bold;
+  min-width: 28px;
+}
+
+/* --- Behavior chips: click one to award beads --- */
 
 #behavior-chips {
   display: flex;
@@ -154,6 +184,33 @@ button:disabled {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #e4ddd1;
+}
+
+.form-label {
+  color: #8a8378;
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+#suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.suggestion {
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: transparent;
+  color: #5a5348;
+  border: 1px solid #c9c3b8;
+}
+
+.suggestion:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 #behavior-name {

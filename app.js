@@ -5,6 +5,12 @@
 
 // --- Settings ---
 const BEAD_COLORS = ["red", "blue", "yellow", "green", "purple"];
+const MAX_AWARD = 10;   // most beads you can give in one go
+const COMMON_REASONS = [
+  "Homework done", "Cleaned room", "Helped a sibling", "Brushed teeth",
+  "Read a book", "Good listening", "Made the bed", "Shared nicely",
+  "Kind words", "Tried something new",
+];
 const STORAGE_KEY = "bead-jar-v3";
 const OLD_MULTI_JAR_KEY = "bead-jar-data";   // Phase 4-8 format
 const OLD_COUNT_KEY = "bead-jar-count";      // Phase 3 format
@@ -14,6 +20,10 @@ const jar = document.querySelector(".jar");
 const jarZone = document.querySelector(".jar-zone");
 const progress = document.querySelector("#progress");
 const chipsEl = document.querySelector("#behavior-chips");
+const countMinus = document.querySelector("#count-minus");
+const countPlus = document.querySelector("#count-plus");
+const countDisplay = document.querySelector("#count-display");
+const suggestionsEl = document.querySelector("#suggestions");
 const newBehaviorButton = document.querySelector("#new-behavior");
 const behaviorForm = document.querySelector("#behavior-form");
 const nameInput = document.querySelector("#behavior-name");
@@ -29,6 +39,7 @@ const logEl = document.querySelector("#log");
 // }
 let state = loadState();
 let chosenColor = BEAD_COLORS[0];   // color picked in the new-behavior form
+let awardCount = 1;                 // how many beads the next chip click gives
 
 // --- Storage ---
 
@@ -99,20 +110,36 @@ function save() {
 
 // --- Actions: change the data, then save and redraw ---
 
-function addBead(behaviorId) {
-  if (state.beads.length >= state.goal) return;
+function addBeads(behaviorId, count) {
+  const space = state.goal - state.beads.length;
+  if (space <= 0) return;
+  const toAdd = Math.min(count, space);   // never overfill the jar
 
-  const id = Math.max(0, ...state.beads.map(b => b.id)) + 1;
-  state.beads.push({ id, behaviorId, at: new Date().toISOString() });
+  let nextId = Math.max(0, ...state.beads.map(b => b.id)) + 1;
+  const at = new Date().toISOString();
+  for (let i = 0; i < toAdd; i++) {
+    state.beads.push({ id: nextId++, behaviorId, at });
+  }
   save();
   render();
 
-  const newBead = jar.lastElementChild;
-  if (newBead) newBead.classList.add("drop");
+  // Animate the new beads dropping in one after another.
+  const newBeads = [...jar.children].slice(-toAdd);
+  newBeads.forEach((bead, i) => {
+    bead.classList.add("drop");
+    bead.style.animationDelay = (i * 0.09) + "s";
+  });
 
   if (state.beads.length === state.goal) {
-    setTimeout(celebrate, 400);
+    setTimeout(celebrate, 400 + toAdd * 90);
   }
+
+  setAwardCount(1);   // reset so the next award is deliberate
+}
+
+function setAwardCount(n) {
+  awardCount = Math.max(1, Math.min(MAX_AWARD, n));
+  countDisplay.textContent = awardCount;
 }
 
 function removeBead(beadId) {
@@ -177,7 +204,7 @@ function render() {
     chip.className = "chip " + behavior.color;
     chip.textContent = behavior.name;
     chip.disabled = full;
-    chip.addEventListener("click", () => addBead(behavior.id));
+    chip.addEventListener("click", () => addBeads(behavior.id, awardCount));
     chipsEl.appendChild(chip);
   }
 
@@ -216,9 +243,34 @@ function render() {
   }
 }
 
+// --- The count stepper ---
+
+countMinus.addEventListener("click", () => setAwardCount(awardCount - 1));
+countPlus.addEventListener("click", () => setAwardCount(awardCount + 1));
+
 // --- The new-behavior form ---
 
+// Offer common reasons the family hasn't added yet; tapping one
+// fills the name box (you can still edit it before creating).
+function renderSuggestions() {
+  suggestionsEl.innerHTML = "";
+  const existing = state.behaviors.map(b => b.name.toLowerCase());
+  for (const reason of COMMON_REASONS) {
+    if (existing.includes(reason.toLowerCase())) continue;
+    const suggestion = document.createElement("button");
+    suggestion.type = "button";   // NOT a submit button
+    suggestion.className = "suggestion";
+    suggestion.textContent = reason;
+    suggestion.addEventListener("click", () => {
+      nameInput.value = reason;
+      nameInput.focus();
+    });
+    suggestionsEl.appendChild(suggestion);
+  }
+}
+
 newBehaviorButton.addEventListener("click", () => {
+  renderSuggestions();
   behaviorForm.hidden = false;
   nameInput.focus();
 });

@@ -20,11 +20,21 @@
   </div>
 
   <section class="panel">
-    <h2>Add a bead for&hellip;</h2>
+    <h2>Add beads for&hellip;</h2>
+
+    <div class="count-picker">
+      <span>Beads to give:</span>
+      <button id="count-minus" title="Fewer beads">&minus;</button>
+      <span id="count-display">1</span>
+      <button id="count-plus" title="More beads">+</button>
+    </div>
+
     <div id="behavior-chips"></div>
-    <button id="new-behavior">+ New behavior</button>
+    <button id="new-behavior">+ Add a reason</button>
 
     <form id="behavior-form" hidden>
+      <p class="form-label">Pick a common reason, or type your own:</p>
+      <div id="suggestions"></div>
       <input id="behavior-name" placeholder="e.g. Homework done"
              maxlength="40" autocomplete="off">
       <div id="color-choices"></div>
