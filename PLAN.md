@@ -102,6 +102,39 @@ to maintain, and effectively free at our scale.
   cost alarms.
 - **You'll learn:** what separates a demo API from one you'd give strangers.
 
+## Part III — The app grows
+
+**Design pivot (2026-07-06):** ONE shared jar instead of a jar per habit.
+Each bead now carries *why* it was earned — you award a bead for a
+"behavior" (a named, colored task), and a history log records every bead
+with its reason and time. The jar is the family's shared progress toward
+a reward; its colors show what everyone has been doing. (Phase 4's
+multi-jar work wasn't wasted — it taught the render-from-data pattern
+this is built on.)
+
+## Phase 11 — Rewards *(what filling the jar means)*
+
+- Set the reward while filling ("when full: trip to the zoo"), show it on
+  the jar, and a proper "jar is full" ceremony: celebrate, archive the
+  filled jar into a trophy shelf, start fresh.
+- Editable goal size.
+
+## Phase 12 — Insights *(what the beads say)*
+
+- Per-behavior totals, beads-per-week, streaks ("5 days in a row!").
+- **You'll learn:** deriving statistics from event data — the log built in
+  the pivot becomes a dataset.
+
+## Phase 13 — Family *(more people)*
+
+- Profiles (each kid their own jar, or beads tagged per kid).
+- A parent mode: only parents award/remove beads (PIN), kids can watch.
+- Builds on Phase 9's sync so everyone sees the same jar.
+
+## Phase 14 — Quality of life
+
+- Undo, export/import of data, optional sounds, jar themes.
+
 ## Progress
 
 - [x] Phase 0 — Foundations *(2026-07-05)*
@@ -115,3 +148,8 @@ to maintain, and effectively free at our scale.
 - [x] Phase 8 — A real API *(2026-07-05)*
 - [ ] Phase 9 — Connect the app
 - [ ] Phase 10 — Hardening
+- [x] Design pivot — one jar, beads with reasons *(2026-07-06)*
+- [ ] Phase 11 — Rewards
+- [ ] Phase 12 — Insights
+- [ ] Phase 13 — Family
+- [ ] Phase 14 — Quality of life

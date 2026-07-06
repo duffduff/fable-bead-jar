@@ -1,71 +1,135 @@
 // The behavior of the Bead Jar app.
+//
+// One shared jar. Every bead is awarded FOR a "behavior" (a named,
+// colored task), and every bead remembers when it was earned.
 
 // --- Settings ---
 const BEAD_COLORS = ["red", "blue", "yellow", "green", "purple"];
-const DEFAULT_GOAL = 20;
-const STORAGE_KEY = "bead-jar-data";
+const STORAGE_KEY = "bead-jar-v3";
+const OLD_MULTI_JAR_KEY = "bead-jar-data";   // Phase 4-8 format
+const OLD_COUNT_KEY = "bead-jar-count";      // Phase 3 format
 
 // --- Grab the page elements we need ---
-const jarList = document.querySelector("#jar-list");
-const newJarButton = document.querySelector("#new-jar");
+const jar = document.querySelector(".jar");
+const jarZone = document.querySelector(".jar-zone");
+const progress = document.querySelector("#progress");
+const chipsEl = document.querySelector("#behavior-chips");
+const newBehaviorButton = document.querySelector("#new-behavior");
+const behaviorForm = document.querySelector("#behavior-form");
+const nameInput = document.querySelector("#behavior-name");
+const colorChoices = document.querySelector("#color-choices");
+const cancelButton = document.querySelector("#cancel-behavior");
+const logEl = document.querySelector("#log");
 
-// --- State: a list of jars, each one an object like
-//     { id: 1, name: "Reading", color: "blue", goal: 20, beads: 7 }
-let jars = loadJars();
+// --- State ---
+// {
+//   goal:      how many beads fill the jar
+//   behaviors: [{ id, name, color }]
+//   beads:     [{ id, behaviorId, at }]   at = ISO time, or null if migrated
+// }
+let state = loadState();
+let chosenColor = BEAD_COLORS[0];   // color picked in the new-behavior form
 
 // --- Storage ---
 
-function loadJars() {
+function freshState() {
+  return { version: 3, goal: 20, behaviors: [], beads: [] };
+}
+
+function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     try {
       const data = JSON.parse(raw);
-      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.behaviors) && Array.isArray(data.beads)) {
+        return data;
+      }
     } catch (error) {
-      // Broken saved data: ignore it and fall through to a fresh start.
+      // Broken saved data: fall through and start over.
     }
   }
-
-  // First visit — or a save from Phase 3, when the app stored a single
-  // count. Migrate that old count into the new format so no beads are lost.
-  const oldCount = Number(localStorage.getItem("bead-jar-count"));
-  return [{
-    id: 1,
-    name: "My first jar",
-    color: "blue",
-    goal: DEFAULT_GOAL,
-    beads: oldCount >= 1 ? Math.min(Math.floor(oldCount), DEFAULT_GOAL) : 0,
-  }];
+  return migrateOldData();
 }
 
-function saveJars() {
-  // localStorage only stores strings; JSON.stringify turns our
-  // list of objects into one string (and JSON.parse reverses it).
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(jars));
+// Convert saves from earlier versions of the app so no beads are lost.
+function migrateOldData() {
+  const migrated = freshState();
+
+  // Phase 4-8 format: a list of jars. Each old jar becomes a behavior,
+  // and its beads become beads earned for that behavior.
+  try {
+    const oldJars = JSON.parse(localStorage.getItem(OLD_MULTI_JAR_KEY));
+    if (Array.isArray(oldJars) && oldJars.length > 0) {
+      let combinedGoal = 0;
+      for (const oldJar of oldJars) {
+        const behavior = {
+          id: migrated.behaviors.length + 1,
+          name: oldJar.name,
+          color: oldJar.color,
+        };
+        migrated.behaviors.push(behavior);
+        for (let i = 0; i < oldJar.beads; i++) {
+          migrated.beads.push({
+            id: migrated.beads.length + 1,
+            behaviorId: behavior.id,
+            at: null,   // we never knew when these were earned
+          });
+        }
+        combinedGoal += oldJar.goal;
+      }
+      if (combinedGoal > 0) migrated.goal = combinedGoal;
+      return migrated;
+    }
+  } catch (error) { /* fall through */ }
+
+  // Phase 3 format: a bare count.
+  const oldCount = Number(localStorage.getItem(OLD_COUNT_KEY));
+  if (oldCount >= 1) {
+    migrated.behaviors.push({ id: 1, name: "Good deeds", color: "blue" });
+    for (let i = 0; i < Math.min(Math.floor(oldCount), migrated.goal); i++) {
+      migrated.beads.push({ id: i + 1, behaviorId: 1, at: null });
+    }
+  }
+  return migrated;
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 // --- Actions: change the data, then save and redraw ---
 
-function addBead(jarData) {
-  if (jarData.beads >= jarData.goal) return;
-  jarData.beads = jarData.beads + 1;
-  saveJars();
+function addBead(behaviorId) {
+  if (state.beads.length >= state.goal) return;
+
+  const id = Math.max(0, ...state.beads.map(b => b.id)) + 1;
+  state.beads.push({ id, behaviorId, at: new Date().toISOString() });
+  save();
   render();
 
-  // render() rebuilt everything, so find this jar's card again and
-  // tag its newest bead with the class that carries the drop animation.
-  const card = jarList.querySelector('.jar-card[data-id="' + jarData.id + '"]');
-  const newBead = card.querySelector(".jar").lastElementChild;
+  const newBead = jar.lastElementChild;
   if (newBead) newBead.classList.add("drop");
 
-  // Just hit the goal? Throw confetti (after the bead has landed).
-  if (jarData.beads === jarData.goal) {
-    setTimeout(() => celebrate(card), 400);
+  if (state.beads.length === state.goal) {
+    setTimeout(celebrate, 400);
   }
 }
 
-// Rain confetti pieces down over a jar's card.
-function celebrate(card) {
+function removeBead(beadId) {
+  state.beads = state.beads.filter(b => b.id !== beadId);
+  save();
+  render();
+}
+
+function addBehavior(name, color) {
+  const id = Math.max(0, ...state.behaviors.map(b => b.id)) + 1;
+  state.behaviors.push({ id, name, color });
+  save();
+  render();
+}
+
+// Rain confetti over the jar.
+function celebrate() {
   const colors = ["#d64545", "#3a72c9", "#e0a92e", "#3d9c50", "#8a4fc7"];
   for (let i = 0; i < 40; i++) {
     const piece = document.createElement("div");
@@ -73,117 +137,124 @@ function celebrate(card) {
     piece.style.left = Math.random() * 100 + "%";
     piece.style.background = colors[Math.floor(Math.random() * colors.length)];
     piece.style.animationDelay = Math.random() * 0.4 + "s";
-    // Each piece drifts sideways a random amount; the CSS reads this variable.
     piece.style.setProperty("--drift", (Math.random() * 160 - 80) + "px");
-    card.appendChild(piece);
-    setTimeout(() => piece.remove(), 3000);   // clean up after the show
+    jarZone.appendChild(piece);
+    setTimeout(() => piece.remove(), 3000);
   }
-}
-
-function removeBead(jarData) {
-  if (jarData.beads === 0) return;
-  jarData.beads = jarData.beads - 1;
-  saveJars();
-  render();
-}
-
-function createJar() {
-  const name = prompt("What is this jar for?", "New jar");
-  if (!name) return;   // cancelled or empty
-
-  const goalAnswer = Number(prompt("How many beads to fill it?", DEFAULT_GOAL));
-  const goal = goalAnswer >= 1 ? Math.floor(goalAnswer) : DEFAULT_GOAL;
-
-  const nextId = Math.max(0, ...jars.map(j => j.id)) + 1;
-  const color = BEAD_COLORS[nextId % BEAD_COLORS.length];
-
-  jars.push({ id: nextId, name: name, color: color, goal: goal, beads: 0 });
-  saveJars();
-  render();
-}
-
-function renameJar(jarData) {
-  const name = prompt("New name for this jar:", jarData.name);
-  if (!name) return;
-  jarData.name = name;
-  saveJars();
-  render();
-}
-
-function deleteJar(jarData) {
-  const sure = confirm('Delete "' + jarData.name + '" and its beads?');
-  if (!sure) return;
-  jars = jars.filter(j => j.id !== jarData.id);
-  saveJars();
-  render();
 }
 
 // --- Rendering: rebuild the screen from the data ---
 
-// Build the card for one jar.
-function renderJarCard(jarData) {
-  const card = document.createElement("section");
-  card.className = "jar-card";
-  card.dataset.id = jarData.id;              // name tag: which jar is this card?
-  if (jarData.beads >= jarData.goal) {
-    card.classList.add("full");              // CSS gives full jars a golden glow
-  }
-
-  // The fixed skeleton of a card. Names and counts are filled in below
-  // with textContent, never pasted into this HTML string — that way a
-  // jar named something like "<b>ha</b>" stays plain text.
-  card.innerHTML = `
-    <h2 class="jar-name"></h2>
-    <div class="jar"></div>
-    <div class="controls">
-      <button class="remove-bead">&minus;</button>
-      <span class="count"></span>
-      <button class="add-bead">+</button>
-    </div>
-    <p class="card-actions">
-      <button class="rename">Rename</button>
-      <button class="delete">Delete</button>
-    </p>
-  `;
-
-  card.querySelector(".jar-name").textContent = jarData.name;
-  card.querySelector(".count").textContent = jarData.beads + " / " + jarData.goal;
-
-  const jarEl = card.querySelector(".jar");
-  for (let i = 0; i < jarData.beads; i++) {
-    const bead = document.createElement("div");
-    bead.className = "bead " + jarData.color;
-    jarEl.appendChild(bead);
-  }
-
-  const addButton = card.querySelector(".add-bead");
-  const removeButton = card.querySelector(".remove-bead");
-  addButton.disabled = jarData.beads >= jarData.goal;
-  removeButton.disabled = jarData.beads === 0;
-
-  addButton.addEventListener("click", () => addBead(jarData));
-  removeButton.addEventListener("click", () => removeBead(jarData));
-  card.querySelector(".rename").addEventListener("click", () => renameJar(jarData));
-  card.querySelector(".delete").addEventListener("click", () => deleteJar(jarData));
-
-  return card;
+function behaviorById(id) {
+  return state.behaviors.find(b => b.id === id);
 }
 
-// Wipe the list and rebuild every card. The screen is always
-// exactly what the data says — they can never disagree.
 function render() {
-  jarList.innerHTML = "";
-  for (const jarData of jars) {
-    jarList.appendChild(renderJarCard(jarData));
+  const full = state.beads.length >= state.goal;
+
+  // The jar: one circle per bead, colored by its behavior.
+  jar.innerHTML = "";
+  for (const bead of state.beads) {
+    const el = document.createElement("div");
+    const behavior = behaviorById(bead.behaviorId);
+    el.className = "bead " + (behavior ? behavior.color : "blue");
+    jar.appendChild(el);
   }
+
+  progress.textContent = state.beads.length + " / " + state.goal;
+  jarZone.classList.toggle("full", full);
+
+  // One chip per behavior — clicking it awards a bead.
+  chipsEl.innerHTML = "";
+  if (state.behaviors.length === 0) {
+    const hint = document.createElement("p");
+    hint.className = "hint";
+    hint.textContent = "Create your first behavior to start earning beads.";
+    chipsEl.appendChild(hint);
+  }
+  for (const behavior of state.behaviors) {
+    const chip = document.createElement("button");
+    chip.className = "chip " + behavior.color;
+    chip.textContent = behavior.name;
+    chip.disabled = full;
+    chip.addEventListener("click", () => addBead(behavior.id));
+    chipsEl.appendChild(chip);
+  }
+
+  // The history: newest first. Each row can remove its bead.
+  logEl.innerHTML = "";
+  if (state.beads.length === 0) {
+    const li = document.createElement("li");
+    li.className = "hint";
+    li.textContent = "No beads yet.";
+    logEl.appendChild(li);
+  }
+  for (const bead of [...state.beads].reverse()) {
+    const behavior = behaviorById(bead.behaviorId);
+    const li = document.createElement("li");
+
+    const dot = document.createElement("span");
+    dot.className = "dot " + (behavior ? behavior.color : "blue");
+
+    const name = document.createElement("span");
+    name.className = "log-name";
+    name.textContent = behavior ? behavior.name : "(unknown)";
+
+    const when = document.createElement("time");
+    when.textContent = bead.at
+      ? new Date(bead.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+      : "before today";
+
+    const remove = document.createElement("button");
+    remove.className = "log-remove";
+    remove.textContent = "×";
+    remove.title = "Remove this bead";
+    remove.addEventListener("click", () => removeBead(bead.id));
+
+    li.append(dot, name, when, remove);
+    logEl.appendChild(li);
+  }
+}
+
+// --- The new-behavior form ---
+
+newBehaviorButton.addEventListener("click", () => {
+  behaviorForm.hidden = false;
+  nameInput.focus();
+});
+
+cancelButton.addEventListener("click", () => {
+  behaviorForm.hidden = true;
+});
+
+behaviorForm.addEventListener("submit", (event) => {
+  event.preventDefault();   // forms reload the page by default — stop that
+  const name = nameInput.value.trim();
+  if (!name) return;
+  addBehavior(name, chosenColor);
+  nameInput.value = "";
+  behaviorForm.hidden = true;
+});
+
+// Build the five color swatches once.
+for (const color of BEAD_COLORS) {
+  const swatch = document.createElement("button");
+  swatch.type = "button";   // NOT a submit button
+  swatch.className = "swatch " + color + (color === chosenColor ? " selected" : "");
+  swatch.title = color;
+  swatch.addEventListener("click", () => {
+    chosenColor = color;
+    colorChoices.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
+    swatch.classList.add("selected");
+  });
+  colorChoices.appendChild(swatch);
 }
 
 // --- Start up ---
-newJarButton.addEventListener("click", createJar);
+save();     // if loadState() just migrated old data, pin the result
 render();
 
 // Register the service worker (sw.js) so the app works offline.
-// Old browsers without support just skip this — the app still works online.
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }

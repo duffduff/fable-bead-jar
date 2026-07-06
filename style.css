@@ -10,7 +10,105 @@ body {
   color: #8a8378;
 }
 
-/* --- Buttons --- */
+/* --- The five colors, shared by beads, chips, swatches, and log dots.
+       A radial gradient (light spot up-left) makes flat shapes look 3D. --- */
+
+.red    { background: radial-gradient(circle at 35% 30%, #ffa1a1, #d64545 75%); }
+.blue   { background: radial-gradient(circle at 35% 30%, #9ec9ff, #3a72c9 75%); }
+.yellow { background: radial-gradient(circle at 35% 30%, #ffe9a1, #e0a92e 75%); }
+.green  { background: radial-gradient(circle at 35% 30%, #a9e8b0, #3d9c50 75%); }
+.purple { background: radial-gradient(circle at 35% 30%, #d3b5f5, #8a4fc7 75%); }
+
+/* --- The jar: a glassy box that beads stack up inside --- */
+
+.jar-zone {
+  position: relative;          /* confetti positions itself in here */
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.jar {
+  box-sizing: border-box;      /* width/height include the border */
+  width: 300px;
+  height: 380px;
+  margin: 1.5rem auto 0.5rem;
+  padding: 8px;
+  background: rgba(190, 215, 230, 0.35);   /* translucent "glass" */
+  border: 6px solid rgba(120, 150, 170, 0.5);
+  border-top-width: 14px;                  /* thicker top = the rim */
+  border-radius: 14px 14px 40px 40px;      /* rounder at the bottom */
+
+  /* Gravity, faked with flexbox: lay beads out in rows,
+     but start wrapping from the BOTTOM up. */
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* A full jar glows gold. */
+.jar-zone.full .jar {
+  border-color: rgba(224, 169, 46, 0.8);
+  box-shadow: 0 0 22px rgba(224, 169, 46, 0.55);
+}
+
+#progress {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #5a5348;
+  margin: 0 0 8px;
+}
+
+.bead {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* The newest bead falls in from above the jar and bounces once. */
+.bead.drop {
+  animation: drop 0.45s cubic-bezier(0.3, 0, 0.7, 1);
+}
+
+@keyframes drop {
+  from { transform: translateY(-250px); }
+  60%  { transform: translateY(0); }
+  78%  { transform: translateY(-10px); }
+  to   { transform: translateY(0); }
+}
+
+/* --- Panels (behaviors, history) --- */
+
+.panel {
+  max-width: 520px;
+  margin: 20px auto;
+  padding: 4px 16px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  color: #5a5348;
+}
+
+.hint {
+  color: #8a8378;
+  font-style: italic;
+}
+
+/* --- Behavior chips: click one to award a bead --- */
+
+#behavior-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 
 button {
   font-size: 1rem;
@@ -23,153 +121,149 @@ button {
 }
 
 button:hover {
-  background: #3d7a4d;
+  filter: brightness(0.94);
 }
 
 button:disabled {
   background: #c9c3b8;
   cursor: default;
+  filter: none;
 }
 
-#new-jar {
-  margin-bottom: 24px;
-}
-
-/* --- The list of jar cards --- */
-
-#jar-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 0 16px 32px;
-}
-
-.jar-card {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  position: relative;          /* confetti positions itself inside the card */
-  overflow: hidden;            /* ...and gets clipped at the card's edges */
-}
-
-/* A jar that reached its goal glows gold. */
-.jar-card.full .jar {
-  border-color: rgba(224, 169, 46, 0.8);
-  box-shadow: 0 0 18px rgba(224, 169, 46, 0.55);
-}
-
-.jar-name {
-  margin: 0 0 12px;
-  font-size: 1.15rem;
-  color: #5a5348;
-}
-
-/* --- One jar: a glassy box that beads stack up inside --- */
-
-.jar {
-  box-sizing: border-box;      /* width/height include the border */
-  width: 200px;
-  height: 240px;
-  margin: 0 auto 12px;
-  padding: 8px;
-  background: rgba(190, 215, 230, 0.35);   /* translucent "glass" */
-  border: 5px solid rgba(120, 150, 170, 0.5);
-  border-top-width: 12px;                  /* thicker top = the rim */
-  border-radius: 12px 12px 32px 32px;      /* rounder at the bottom */
-
-  /* Gravity, faked with flexbox: lay beads out in rows,
-     but start wrapping from the BOTTOM up. */
-  display: flex;
-  flex-wrap: wrap-reverse;
-  align-content: flex-start;
-  justify-content: center;
-  gap: 3px;
-}
-
-/* --- The +/- controls and counter under each jar --- */
-
-.controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-}
-
-.controls button {
-  padding: 8px 16px;
-}
-
-.count {
-  font-size: 1.1rem;
+.chip {
+  border-radius: 999px;
   font-weight: bold;
-  color: #5a5348;
-  min-width: 64px;             /* so the row doesn't shift as digits change */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* --- Rename / delete --- */
-
-.card-actions {
-  margin: 12px 0 0;
+.chip:disabled {
+  background: #c9c3b8;
+  text-shadow: none;
 }
 
-.card-actions button {
-  font-size: 0.8rem;
-  padding: 5px 10px;
-  margin: 0 4px;
+#new-behavior {
+  background: transparent;
+  color: #8a8378;
+  border: 1px dashed #c9c3b8;
+}
+
+/* --- The new-behavior form --- */
+
+#behavior-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e4ddd1;
+}
+
+#behavior-name {
+  font-size: 1rem;
+  padding: 10px 12px;
+  border: 1px solid #c9c3b8;
+  border-radius: 10px;
+  width: min(100%, 300px);
+  box-sizing: border-box;
+}
+
+#color-choices {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+.swatch.selected {
+  outline: 3px solid #5a5348;
+  outline-offset: 2px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#cancel-behavior {
   background: transparent;
   color: #8a8378;
   border: 1px solid #c9c3b8;
 }
 
-.card-actions button:hover {
-  background: rgba(0, 0, 0, 0.05);
+/* --- History --- */
+
+#log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+#log li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-bottom: 1px solid #eee7da;
+}
+
+#log li:last-child {
+  border-bottom: none;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.log-name {
+  flex: 1;
   color: #5a5348;
 }
 
-/* --- Beads: circles with a shine --- */
-
-.bead {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;          /* corners so round it's a circle */
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+#log time {
+  color: #8a8378;
+  font-size: 0.85rem;
 }
 
-/* Each color: a radial gradient = light spot up-left, darker rim.
-   That one trick makes a flat circle look like a 3D bead. */
-/* The newest bead falls in from above the jar and bounces once.
-   @keyframes describe snapshots of the motion; the browser fills
-   in every frame between them. */
-.bead.drop {
-  animation: drop 0.45s cubic-bezier(0.3, 0, 0.7, 1);
+.log-remove {
+  background: transparent;
+  color: #c9c3b8;
+  padding: 2px 8px;
+  font-size: 1.1rem;
 }
 
-@keyframes drop {
-  from { transform: translateY(-230px); }  /* start above the jar */
-  60%  { transform: translateY(0); }       /* land */
-  78%  { transform: translateY(-10px); }   /* small bounce up */
-  to   { transform: translateY(0); }       /* settle */
+.log-remove:hover {
+  color: #d64545;
+  background: transparent;
 }
 
 /* --- Confetti --- */
 
 .confetti {
   position: absolute;
-  top: -14px;                  /* start just above the card */
+  top: -14px;
   width: 9px;
   height: 14px;
   border-radius: 2px;
-  pointer-events: none;        /* can't be clicked, never blocks buttons */
+  pointer-events: none;
   animation: confetti-fall 2.2s ease-in forwards;
 }
 
 @keyframes confetti-fall {
   to {
-    /* fall past the card bottom, drifting sideways and tumbling */
-    transform: translateY(440px) translateX(var(--drift)) rotate(720deg);
+    transform: translateY(460px) translateX(var(--drift)) rotate(720deg);
     opacity: 0;
   }
 }
@@ -179,9 +273,3 @@ button:disabled {
   .bead.drop { animation: none; }
   .confetti { display: none; }
 }
-
-.bead.red    { background: radial-gradient(circle at 35% 30%, #ffa1a1, #d64545 75%); }
-.bead.blue   { background: radial-gradient(circle at 35% 30%, #9ec9ff, #3a72c9 75%); }
-.bead.yellow { background: radial-gradient(circle at 35% 30%, #ffe9a1, #e0a92e 75%); }
-.bead.green  { background: radial-gradient(circle at 35% 30%, #a9e8b0, #3d9c50 75%); }
-.bead.purple { background: radial-gradient(circle at 35% 30%, #d3b5f5, #8a4fc7 75%); }

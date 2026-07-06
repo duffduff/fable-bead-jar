@@ -14,9 +14,31 @@
   <h1>Bead Jar</h1>
   <p class="subtitle">Do good things, earn beads, fill the jar.</p>
 
-  <button id="new-jar">+ New jar</button>
+  <div class="jar-zone">
+    <div class="jar"></div>
+    <p id="progress">0 / 20</p>
+  </div>
 
-  <div id="jar-list"></div>
+  <section class="panel">
+    <h2>Add a bead for&hellip;</h2>
+    <div id="behavior-chips"></div>
+    <button id="new-behavior">+ New behavior</button>
+
+    <form id="behavior-form" hidden>
+      <input id="behavior-name" placeholder="e.g. Homework done"
+             maxlength="40" autocomplete="off">
+      <div id="color-choices"></div>
+      <div class="form-buttons">
+        <button type="submit">Create</button>
+        <button type="button" id="cancel-behavior">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>History</h2>
+    <ol id="log"></ol>
+  </section>
 
   <script src="app.js"></script>
 </body>
