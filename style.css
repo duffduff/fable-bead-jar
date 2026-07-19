@@ -30,7 +30,8 @@ body {
 .jar {
   box-sizing: border-box;      /* width/height include the border */
   width: 300px;
-  height: 380px;
+  min-height: 380px;           /* no upper limit: the jar GROWS as beads
+                                  stack past the brim of the old size */
   margin: 1.5rem auto 0.5rem;
   padding: 8px;
   background: rgba(190, 215, 230, 0.35);   /* translucent "glass" */
@@ -47,16 +48,15 @@ body {
   gap: 4px;
 }
 
-/* A full jar glows gold. */
-.jar-zone.full .jar {
-  border-color: rgba(224, 169, 46, 0.8);
-  box-shadow: 0 0 22px rgba(224, 169, 46, 0.55);
-}
-
 #progress {
   font-size: 1.3rem;
   font-weight: bold;
   color: #5a5348;
+  margin: 0 0 2px;
+}
+
+#next-reward {
+  color: #8a8378;
   margin: 0 0 8px;
 }
 
@@ -102,6 +102,89 @@ body {
 .hint {
   color: #8a8378;
   font-style: italic;
+}
+
+/* --- Rewards: milestones the growing jar reaches --- */
+
+#reward-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  text-align: left;
+}
+
+.reward {
+  padding: 8px 4px;
+  border-bottom: 1px solid #eee7da;
+}
+
+.reward:last-child {
+  border-bottom: none;
+}
+
+.reward-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reward-name {
+  flex: 1;
+  color: #5a5348;
+  font-weight: bold;
+}
+
+.reward-status {
+  color: #8a8378;
+  font-size: 0.85rem;
+}
+
+.reward.earned .reward-name {
+  color: #a3781f;
+}
+
+.bar {
+  height: 10px;
+  margin-top: 6px;
+  background: #eee7da;
+  border-radius: 999px;
+  overflow: hidden;            /* clips the fill to the rounded shape */
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6db97f, #4a8f5c);
+  border-radius: 999px;
+}
+
+#new-reward {
+  background: transparent;
+  color: #8a8378;
+  border: 1px dashed #c9c3b8;
+}
+
+#reward-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e4ddd1;
+}
+
+#reward-name, #reward-target {
+  font-size: 1rem;
+  padding: 10px 12px;
+  border: 1px solid #c9c3b8;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+#reward-name  { width: min(100%, 300px); }
+#reward-target { width: min(100%, 160px); }
+
+.form-error {
+  color: #d64545;
+  font-size: 0.9rem;
+  margin: 0 0 10px;
 }
 
 /* --- The count stepper: how many beads the next award gives --- */

@@ -16,8 +16,27 @@
 
   <div class="jar-zone">
     <div class="jar"></div>
-    <p id="progress">0 / 20</p>
+    <p id="progress">0 beads</p>
+    <p id="next-reward"></p>
   </div>
+
+  <section class="panel">
+    <h2>Rewards</h2>
+    <ul id="reward-list"></ul>
+    <button id="new-reward">+ Add a reward</button>
+
+    <form id="reward-form" hidden>
+      <input id="reward-name" placeholder="e.g. Trip to the zoo"
+             maxlength="60" autocomplete="off">
+      <input id="reward-target" type="number" min="1" max="9999"
+             placeholder="beads needed">
+      <p class="form-error" id="reward-error" hidden></p>
+      <div class="form-buttons">
+        <button type="submit">Create</button>
+        <button type="button" id="cancel-reward">Cancel</button>
+      </div>
+    </form>
+  </section>
 
   <section class="panel">
     <h2>Add beads for&hellip;</h2>

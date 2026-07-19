@@ -1,7 +1,9 @@
 // The behavior of the Bead Jar app.
 //
-// One shared jar. Every bead is awarded FOR a "behavior" (a named,
-// colored task), and every bead remembers when it was earned.
+// One shared jar with NO upper limit — it just grows. Every bead is
+// awarded FOR a "behavior" (a named, colored task) and remembers when
+// it was earned. Rewards are milestones: when the bead count crosses
+// a reward's target, that reward is earned (beads are never removed).
 
 // --- Settings ---
 const BEAD_COLORS = ["red", "blue", "yellow", "green", "purple"];
@@ -19,6 +21,14 @@ const OLD_COUNT_KEY = "bead-jar-count";      // Phase 3 format
 const jar = document.querySelector(".jar");
 const jarZone = document.querySelector(".jar-zone");
 const progress = document.querySelector("#progress");
+const nextRewardEl = document.querySelector("#next-reward");
+const rewardListEl = document.querySelector("#reward-list");
+const newRewardButton = document.querySelector("#new-reward");
+const rewardForm = document.querySelector("#reward-form");
+const rewardNameInput = document.querySelector("#reward-name");
+const rewardTargetInput = document.querySelector("#reward-target");
+const rewardError = document.querySelector("#reward-error");
+const cancelRewardButton = document.querySelector("#cancel-reward");
 const chipsEl = document.querySelector("#behavior-chips");
 const countMinus = document.querySelector("#count-minus");
 const countPlus = document.querySelector("#count-plus");
@@ -33,9 +43,9 @@ const logEl = document.querySelector("#log");
 
 // --- State ---
 // {
-//   goal:      how many beads fill the jar
 //   behaviors: [{ id, name, color }]
-//   beads:     [{ id, behaviorId, at }]   at = ISO time, or null if migrated
+//   beads:     [{ id, behaviorId, at }]     at = ISO time, null if migrated
+//   rewards:   [{ id, name, target, earnedAt }]   earnedAt = ISO time or null
 // }
 let state = loadState();
 let chosenColor = BEAD_COLORS[0];   // color picked in the new-behavior form
@@ -44,7 +54,7 @@ let awardCount = 1;                 // how many beads the next chip click gives
 // --- Storage ---
 
 function freshState() {
-  return { version: 3, goal: 20, behaviors: [], beads: [] };
+  return { version: 4, behaviors: [], beads: [], rewards: [] };
 }
 
 function loadState() {
@@ -53,7 +63,7 @@ function loadState() {
     try {
       const data = JSON.parse(raw);
       if (data && Array.isArray(data.behaviors) && Array.isArray(data.beads)) {
-        return data;
+        return upgradeState(data);
       }
     } catch (error) {
       // Broken saved data: fall through and start over.
@@ -62,7 +72,26 @@ function loadState() {
   return migrateOldData();
 }
 
-// Convert saves from earlier versions of the app so no beads are lost.
+// v3 saves had a goal (an upper limit) and no rewards. The goal becomes
+// the first reward, so the target you were chasing isn't lost.
+function upgradeState(data) {
+  if (!Array.isArray(data.rewards)) {
+    data.rewards = [];
+    if (Number(data.goal) >= 1) {
+      data.rewards.push({
+        id: 1,
+        name: "Fill the jar",
+        target: Math.floor(data.goal),
+        earnedAt: data.beads.length >= data.goal ? new Date().toISOString() : null,
+      });
+    }
+  }
+  delete data.goal;
+  data.version = 4;
+  return data;
+}
+
+// Convert saves from much older versions of the app so no beads are lost.
 function migrateOldData() {
   const migrated = freshState();
 
@@ -71,7 +100,6 @@ function migrateOldData() {
   try {
     const oldJars = JSON.parse(localStorage.getItem(OLD_MULTI_JAR_KEY));
     if (Array.isArray(oldJars) && oldJars.length > 0) {
-      let combinedGoal = 0;
       for (const oldJar of oldJars) {
         const behavior = {
           id: migrated.behaviors.length + 1,
@@ -86,9 +114,7 @@ function migrateOldData() {
             at: null,   // we never knew when these were earned
           });
         }
-        combinedGoal += oldJar.goal;
       }
-      if (combinedGoal > 0) migrated.goal = combinedGoal;
       return migrated;
     }
   } catch (error) { /* fall through */ }
@@ -97,7 +123,7 @@ function migrateOldData() {
   const oldCount = Number(localStorage.getItem(OLD_COUNT_KEY));
   if (oldCount >= 1) {
     migrated.behaviors.push({ id: 1, name: "Good deeds", color: "blue" });
-    for (let i = 0; i < Math.min(Math.floor(oldCount), migrated.goal); i++) {
+    for (let i = 0; i < Math.floor(oldCount); i++) {
       migrated.beads.push({ id: i + 1, behaviorId: 1, at: null });
     }
   }
@@ -111,27 +137,32 @@ function save() {
 // --- Actions: change the data, then save and redraw ---
 
 function addBeads(behaviorId, count) {
-  const space = state.goal - state.beads.length;
-  if (space <= 0) return;
-  const toAdd = Math.min(count, space);   // never overfill the jar
-
   let nextId = Math.max(0, ...state.beads.map(b => b.id)) + 1;
   const at = new Date().toISOString();
-  for (let i = 0; i < toAdd; i++) {
+  for (let i = 0; i < count; i++) {
     state.beads.push({ id: nextId++, behaviorId, at });
   }
+
+  // Did this award push us across any reward targets?
+  const justEarned = state.rewards.filter(
+    r => !r.earnedAt && state.beads.length >= r.target
+  );
+  for (const reward of justEarned) {
+    reward.earnedAt = at;
+  }
+
   save();
   render();
 
   // Animate the new beads dropping in one after another.
-  const newBeads = [...jar.children].slice(-toAdd);
+  const newBeads = [...jar.children].slice(-count);
   newBeads.forEach((bead, i) => {
     bead.classList.add("drop");
     bead.style.animationDelay = (i * 0.09) + "s";
   });
 
-  if (state.beads.length === state.goal) {
-    setTimeout(celebrate, 400 + toAdd * 90);
+  if (justEarned.length > 0) {
+    setTimeout(celebrate, 400 + count * 90);
   }
 
   setAwardCount(1);   // reset so the next award is deliberate
@@ -143,6 +174,7 @@ function setAwardCount(n) {
 }
 
 function removeBead(beadId) {
+  // Earned rewards stay earned — history is history.
   state.beads = state.beads.filter(b => b.id !== beadId);
   save();
   render();
@@ -151,6 +183,19 @@ function removeBead(beadId) {
 function addBehavior(name, color) {
   const id = Math.max(0, ...state.behaviors.map(b => b.id)) + 1;
   state.behaviors.push({ id, name, color });
+  save();
+  render();
+}
+
+function addReward(name, target) {
+  const id = Math.max(0, ...state.rewards.map(r => r.id)) + 1;
+  state.rewards.push({ id, name, target, earnedAt: null });
+  save();
+  render();
+}
+
+function removeReward(rewardId) {
+  state.rewards = state.rewards.filter(r => r.id !== rewardId);
   save();
   render();
 }
@@ -176,8 +221,15 @@ function behaviorById(id) {
   return state.behaviors.find(b => b.id === id);
 }
 
+function formatWhen(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function render() {
-  const full = state.beads.length >= state.goal;
+  const beadCount = state.beads.length;
 
   // The jar: one circle per bead, colored by its behavior.
   jar.innerHTML = "";
@@ -188,10 +240,73 @@ function render() {
     jar.appendChild(el);
   }
 
-  progress.textContent = state.beads.length + " / " + state.goal;
-  jarZone.classList.toggle("full", full);
+  progress.textContent = beadCount + (beadCount === 1 ? " bead" : " beads");
 
-  // One chip per behavior — clicking it awards a bead.
+  // The next milestone to chase: the closest unearned reward.
+  const upcoming = state.rewards
+    .filter(r => !r.earnedAt)
+    .sort((a, b) => a.target - b.target);
+  if (upcoming.length > 0) {
+    const next = upcoming[0];
+    nextRewardEl.textContent =
+      "🎁 " + next.name + ": " + (next.target - beadCount) + " more beads";
+  } else if (state.rewards.length > 0) {
+    nextRewardEl.textContent = "🏆 All rewards earned — add a new one!";
+  } else {
+    nextRewardEl.textContent = "Add a reward to aim for!";
+  }
+
+  // The rewards list: upcoming first (nearest target on top), earned after.
+  rewardListEl.innerHTML = "";
+  if (state.rewards.length === 0) {
+    const li = document.createElement("li");
+    li.className = "hint";
+    li.textContent = "No rewards yet.";
+    rewardListEl.appendChild(li);
+  }
+  const earned = state.rewards
+    .filter(r => r.earnedAt)
+    .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt));
+  for (const reward of [...upcoming, ...earned]) {
+    const li = document.createElement("li");
+    li.className = "reward" + (reward.earnedAt ? " earned" : "");
+
+    const title = document.createElement("div");
+    title.className = "reward-title";
+
+    const name = document.createElement("span");
+    name.className = "reward-name";
+    name.textContent = (reward.earnedAt ? "🏆 " : "🎁 ") + reward.name;
+
+    const status = document.createElement("span");
+    status.className = "reward-status";
+    status.textContent = reward.earnedAt
+      ? "earned " + formatWhen(reward.earnedAt)
+      : Math.min(beadCount, reward.target) + " / " + reward.target;
+
+    const remove = document.createElement("button");
+    remove.className = "log-remove";
+    remove.textContent = "×";
+    remove.title = "Remove this reward";
+    remove.addEventListener("click", () => removeReward(reward.id));
+
+    title.append(name, status, remove);
+    li.appendChild(title);
+
+    if (!reward.earnedAt) {
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      const fill = document.createElement("div");
+      fill.className = "bar-fill";
+      fill.style.width = Math.min(100, (beadCount / reward.target) * 100) + "%";
+      bar.appendChild(fill);
+      li.appendChild(bar);
+    }
+
+    rewardListEl.appendChild(li);
+  }
+
+  // One chip per behavior — clicking it awards beads.
   chipsEl.innerHTML = "";
   if (state.behaviors.length === 0) {
     const hint = document.createElement("p");
@@ -203,7 +318,6 @@ function render() {
     const chip = document.createElement("button");
     chip.className = "chip " + behavior.color;
     chip.textContent = behavior.name;
-    chip.disabled = full;
     chip.addEventListener("click", () => addBeads(behavior.id, awardCount));
     chipsEl.appendChild(chip);
   }
@@ -228,9 +342,7 @@ function render() {
     name.textContent = behavior ? behavior.name : "(unknown)";
 
     const when = document.createElement("time");
-    when.textContent = bead.at
-      ? new Date(bead.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-      : "before today";
+    when.textContent = bead.at ? formatWhen(bead.at) : "before today";
 
     const remove = document.createElement("button");
     remove.className = "log-remove";
@@ -247,6 +359,39 @@ function render() {
 
 countMinus.addEventListener("click", () => setAwardCount(awardCount - 1));
 countPlus.addEventListener("click", () => setAwardCount(awardCount + 1));
+
+// --- The new-reward form ---
+
+newRewardButton.addEventListener("click", () => {
+  rewardForm.hidden = false;
+  rewardError.hidden = true;
+  rewardNameInput.focus();
+});
+
+cancelRewardButton.addEventListener("click", () => {
+  rewardForm.hidden = true;
+});
+
+rewardForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = rewardNameInput.value.trim();
+  const target = Math.floor(Number(rewardTargetInput.value));
+  if (!name || !(target >= 1)) return;
+
+  // A target we've already passed wouldn't be something to chase.
+  if (target <= state.beads.length) {
+    rewardError.textContent =
+      "The jar already has " + state.beads.length +
+      " beads — pick a bigger target.";
+    rewardError.hidden = false;
+    return;
+  }
+
+  addReward(name, target);
+  rewardNameInput.value = "";
+  rewardTargetInput.value = "";
+  rewardForm.hidden = true;
+});
 
 // --- The new-behavior form ---
 
@@ -303,7 +448,7 @@ for (const color of BEAD_COLORS) {
 }
 
 // --- Start up ---
-save();     // if loadState() just migrated old data, pin the result
+save();     // if loadState() just migrated or upgraded, pin the result
 render();
 
 // Register the service worker (sw.js) so the app works offline.

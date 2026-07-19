@@ -112,12 +112,15 @@ a reward; its colors show what everyone has been doing. (Phase 4's
 multi-jar work wasn't wasted — it taught the render-from-data pattern
 this is built on.)
 
-## Phase 11 — Rewards *(what filling the jar means)*
+## Phase 11 — Rewards *(what the beads are FOR)*
 
-- Set the reward while filling ("when full: trip to the zoo"), show it on
-  the jar, and a proper "jar is full" ceremony: celebrate, archive the
-  filled jar into a trophy shelf, start fresh.
-- Editable goal size.
+**Reshaped by a second pivot (2026-07-19, Chris's call): the jar has no
+upper limit.** It simply grows as beads accumulate; nothing is ever taken
+out. Rewards are milestones along the way: each has a bead target, and
+when the count crosses it, the reward is earned (confetti + earned date)
+and the next target becomes the chase. The old "goal" migrated into the
+first reward. Earned rewards form the trophy list; beads and history are
+never destroyed.
 
 ## Phase 12 — Insights *(what the beads say)*
 
@@ -149,7 +152,7 @@ this is built on.)
 - [ ] Phase 9 — Connect the app
 - [ ] Phase 10 — Hardening
 - [x] Design pivot — one jar, beads with reasons *(2026-07-06)*
-- [ ] Phase 11 — Rewards
+- [x] Phase 11 — Rewards, reshaped: no-limit jar + milestone rewards *(2026-07-19)*
 - [ ] Phase 12 — Insights
 - [ ] Phase 13 — Family
 - [ ] Phase 14 — Quality of life
