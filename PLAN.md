@@ -88,6 +88,29 @@ to maintain, and effectively free at our scale.
 - **You'll learn:** infrastructure as code with Terraform (plan/apply,
   state), NoSQL basics, API design.
 
+### Backend review *(2026-07-24)* — before Phase 9 could start
+
+A review of the Phase 7–8 backend found the API had drifted out of sync
+with the app: it still demanded `{ "jars": [...] }`, a shape the two design
+pivots had erased. Fixed, along with the crash paths and cost risks found
+alongside it:
+
+- The API is now `GET`/`PUT /state/{syncId}` and stores an **opaque blob** —
+  whatever JSON object the app sends comes back unchanged. The backend
+  knows nothing about beads, so the app's data model can keep changing
+  without a redeploy.
+- A `revision` number makes two devices refuse to silently overwrite each
+  other (a stale save gets a `409`). That's the concrete version of the
+  "conflicts/merging" note in Phase 9 below.
+- Crash fixes: a top-level `try/catch` (failures were escaping as bare
+  502s), and a size check that counts real bytes instead of characters.
+- Cost safety: 20 req/s rate limit on the API, 14-day log retention.
+- Phase 7's `bead-jar-hello` was still live on a public URL that Terraform
+  didn't manage — deleted.
+
+Still open, and still Phase 10's job: **there is no authentication.** The
+sync code *is* the credential, it rides in the URL, and CORS is `*`.
+
 ## Phase 9 — Connect the app *(sync)*
 
 - The frontend gets a "sync code": jars save to the cloud and load on any
@@ -149,6 +172,7 @@ never destroyed.
 - [x] Phase 6 — On your phone *(2026-07-05)*
 - [x] Phase 7 — Hello, Lambda *(2026-07-05)*
 - [x] Phase 8 — A real API *(2026-07-05)*
+- [x] Backend review — opaque state API, conflict detection, hardening *(2026-07-24)*
 - [ ] Phase 9 — Connect the app
 - [ ] Phase 10 — Hardening
 - [x] Design pivot — one jar, beads with reasons *(2026-07-06)*

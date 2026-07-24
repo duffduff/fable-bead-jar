@@ -2,9 +2,14 @@
 
 Serverless API on AWS Lambda. Region: `us-east-1`, account `058264520091`.
 
-## Phase 7 — hello Lambda, deployed by hand
+## Phase 7 — hello Lambda, deployed by hand *(decommissioned)*
 
-Live at: https://lvi246u5lx5tkxdp6jsveikflq0cgstj.lambda-url.us-east-1.on.aws/
+> **This function no longer exists.** `bead-jar-hello` was a throwaway that
+> Terraform never managed, sitting on a public URL anyone could call, so
+> `terraform destroy` would have left it running forever. It and its role
+> were deleted on 2026-07-24. The commands below are kept as the learning
+> record — they still describe how a Lambda is assembled by hand — but
+> don't expect the URL or the function to be there.
 
 A Lambda deployment has three parts, created in this order:
 
@@ -29,7 +34,7 @@ aws iam attach-role-policy \
   --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 ```
 
-**2. The code** — `hello/index.mjs`, zipped:
+**2. The code** — `hello/index.mjs` (also deleted), zipped:
 
 ```sh
 cd hello && zip -j function.zip index.mjs
@@ -81,7 +86,7 @@ aws lambda update-function-code \
 
 Everything lives in `terraform/main.tf`: DynamoDB table `bead-jar-data`,
 Lambda `bead-jar-api` (code in `api/index.mjs`), and an API Gateway
-HTTP API with `GET`/`PUT /jars/{syncId}` routes.
+HTTP API with `GET`/`PUT /state/{syncId}` routes.
 
 Live at: https://g4tul8gnh2.execute-api.us-east-1.amazonaws.com
 
@@ -93,6 +98,42 @@ terraform apply   # make reality match main.tf (also redeploys code changes)
 
 The state files (`*.tfstate`) are Terraform's memory of what it built —
 they stay out of git (see .gitignore) and must not be deleted.
+
+### The API
+
+```
+GET  /state/{syncId}  -> 200 { state, savedAt, revision }
+                         404 if nothing is saved under that code
+PUT  /state/{syncId}  -> 200 { savedAt, revision }
+                         400 bad syncId / bad JSON / state isn't an object
+                         409 someone else saved first (stale revision)
+                         413 over 100KB
+```
+
+`state` is stored as an **opaque blob** — whatever JSON object the app
+sends comes back unchanged. The backend deliberately knows nothing about
+beads or behaviors, so the app's data model can change without a deploy.
+
+`revision` is how two devices avoid overwriting each other. A save sends
+back the revision it last read; if the stored one has moved on, the write
+is rejected with a 409 and the app should reload first. A first-ever save
+sends `revision: 0` (or omits it).
+
+```sh
+API=$(cd terraform && terraform output -raw api_url)
+curl -s "$API/state/mysynccode1"
+curl -s -X PUT "$API/state/mysynccode1" \
+  -H 'content-type: application/json' \
+  -d '{"state":{"beads":[]},"revision":0}'
+```
+
+### Known gaps
+
+There is no authentication: the sync code *is* the credential, and it
+travels in the URL. Anyone who knows a code can read and overwrite that
+jar, and CORS is still `*`. Rate limiting (20 req/s) and a Lambda
+concurrency cap of 5 are in place so this can't get expensive, but real
+accounts and a tightened origin are Phase 10 work.
 
 ## Why Phase 8 existed
 

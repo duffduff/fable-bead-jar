@@ -89,11 +89,29 @@ resource "aws_lambda_function" "api" {
   source_code_hash = data.archive_file.api.output_base64sha256
   role             = aws_iam_role.api.arn
 
+  # Both have defaults, but the defaults were never a decision.
+  timeout     = 5   # default 3s — a cold start plus a database retry can beat that
+  memory_size = 256 # default 128MB — more memory also buys more CPU, so cold starts shrink
+
+  # No `reserved_concurrent_executions` here on purpose: this account's
+  # TOTAL Lambda concurrency is 10 (the new-account default, not the usual
+  # 1000), and AWS insists 10 stay unreserved — so reserving any is
+  # rejected outright. That account-wide cap of 10 is already a tighter
+  # ceiling than we'd have set. Revisit if the limit is ever raised.
+
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.jars.name
     }
   }
+}
+
+# Lambda creates this log group by itself on first run — but then nothing
+# manages it: logs are kept forever, and `terraform destroy` leaves it
+# behind. Declaring it puts both under our control.
+resource "aws_cloudwatch_log_group" "api" {
+  name              = "/aws/lambda/${aws_lambda_function.api.function_name}"
+  retention_in_days = 14
 }
 
 # --- The front door ----------------------------------------------------
@@ -118,15 +136,15 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "get_jars" {
+resource "aws_apigatewayv2_route" "get_state" {
   api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /jars/{syncId}"
+  route_key = "GET /state/{syncId}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
-resource "aws_apigatewayv2_route" "put_jars" {
+resource "aws_apigatewayv2_route" "put_state" {
   api_id    = aws_apigatewayv2_api.api.id
-  route_key = "PUT /jars/{syncId}"
+  route_key = "PUT /state/{syncId}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
@@ -134,6 +152,13 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
   auto_deploy = true
+
+  # Anyone who knows a sync code can call this API, and DynamoDB bills per
+  # request — so without a speed limit, one script could run up a real bill.
+  default_route_settings {
+    throttling_rate_limit  = 20 # sustained requests per second
+    throttling_burst_limit = 40 # short spikes above that
+  }
 }
 
 # Allow API Gateway (and only it) to invoke the function.
