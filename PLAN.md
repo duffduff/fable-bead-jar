@@ -1,8 +1,11 @@
 # Bead Jar — Project Plan
 
-A digital reward jar: add beads when you (or your kids) do something good,
-watch the jar fill up, and celebrate when it's full. Built as a web app that
-also installs on a phone (a Progressive Web App, or PWA).
+A digital reward jar: kids earn beads for doing good things, watch their
+jar fill up, and spend them on rewards they've saved for. Built as a web
+app that also installs on a phone (a Progressive Web App, or PWA).
+
+*(It began as a single jar that simply filled up — Part IV and
+[DESIGN.md](DESIGN.md) cover how it grew from there.)*
 
 ## Guiding principles
 
@@ -108,22 +111,16 @@ alongside it:
 - Phase 7's `bead-jar-hello` was still live on a public URL that Terraform
   didn't manage — deleted.
 
-Still open, and still Phase 10's job: **there is no authentication.** The
-sync code *is* the credential, it rides in the URL, and CORS is `*`.
+Still open: **there is no authentication.** The sync code *is* the
+credential, it rides in the URL, and CORS is `*`. Phase 16 replaces the
+whole scheme rather than patching it.
 
-## Phase 9 — Connect the app *(sync)*
+## Phases 9 and 10 — *superseded*
 
-- The frontend gets a "sync code": jars save to the cloud and load on any
-  device with the same code. localStorage stays as the offline copy.
-- Deploy the frontend to real hosting (GitHub Pages) so your phone can
-  finally install the PWA.
-- **You'll learn:** fetch(), CORS, and thinking about conflicts/merging.
-
-## Phase 10 — Hardening *(only if wanted)*
-
-- Input validation, rate limiting, real accounts instead of sync codes,
-  cost alarms.
-- **You'll learn:** what separates a demo API from one you'd give strangers.
+*Phase 9 (a sync code the app types in) and Phase 10 (hardening that
+scheme) were never built. The third pivot below replaces sync codes with
+households and per-device tokens, so they're replaced rather than
+patched. Their content now lives in Phases 13, 16, 17, 18 and 19.*
 
 ## Part III — The app grows
 
@@ -145,21 +142,96 @@ and the next target becomes the chase. The old "goal" migrated into the
 first reward. Earned rewards form the trophy list; beads and history are
 never destroyed.
 
-## Phase 12 — Insights *(what the beads say)*
+## Part IV — The family jar
 
-- Per-behavior totals, beads-per-week, streaks ("5 days in a row!").
-- **You'll learn:** deriving statistics from event data — the log built in
-  the pivot becomes a dataset.
+**Design pivot (2026-07-24, Chris's call): a jar per kid, and beads are
+money.** Two things came up that the old design didn't cover. Kids wanted
+their own jar — not to race, just to see their own effort. And milestone
+rewards only work once: a kid with 200 beads has unlocked everything and
+has nothing left to aim for. So rewards get a **price**, and spending
+**deducts** beads. Kids ask; parents approve. Each reason is worth a
+different number of beads. The household becomes a real account, with a
+revocable token per device instead of a sync code.
 
-## Phase 13 — Family *(more people)*
+This supersedes the 2026-07-06 pivot (one shared jar) and most of Phase
+11's "nothing is ever taken out". The part worth keeping survives: effort
+is never erased — the jar empties when you spend, but a permanent
+"earned all-time" figure sits beside it, and history is never deleted.
 
-- Profiles (each kid their own jar, or beads tagged per kid).
-- A parent mode: only parents award/remove beads (PIN), kids can watch.
-- Builds on Phase 9's sync so everyone sees the same jar.
+**The full design is in [DESIGN.md](DESIGN.md)** — every phase below
+builds on the state shape it defines, so it's worth reading before
+Phase 12.
 
-## Phase 14 — Quality of life
+**Phases 12–15 touch no AWS at all.** The domain model gets settled
+offline, where a mistake costs an edit instead of a `terraform apply`;
+by the time Phase 16 starts, the state shape has stopped moving.
 
-- Undo, export/import of data, optional sounds, jar themes.
+## Phase 12 — Currency *(beads become money)*
+
+- Rewards get prices, reasons get bead values, and spending deducts.
+- The bead list becomes an **append-only history**, and balances are
+  worked out from it rather than stored. Migration from the old data,
+  under a new storage key.
+- A parent redeems a reward directly — no asking flow yet.
+- **You'll learn:** deriving state from a list of events instead of
+  storing it, and how to migrate real data without losing it.
+
+## Phase 13 — Ship it *(real hosting)*
+
+- Deploy to GitHub Pages so the PWA installs properly on a phone.
+- Pulled forward from the old Phase 9: HTTPS is needed for the browser's
+  id generator, and it's easier to build sync for an app the family is
+  already using.
+- **You'll learn:** static hosting, and what "secure context" means.
+
+## Phase 14 — People *(profiles and roles)*
+
+- A jar per kid. Parents see everyone; kids see their own.
+- Parent and kid roles, a parent PIN, and the "who's this?" picker.
+- Shared family device vs a personal one.
+- Shared rewards plus per-kid extras.
+- **You'll learn:** modelling roles and permissions in an interface.
+
+## Phase 15 — Asking *(request and approve)*
+
+- Kid asks to exchange beads; a parent approves or declines.
+- Overdraft warnings, moving beads to the right kid, undo.
+- The complete model, still entirely offline.
+- **You'll learn:** state machines, and designing for mistakes.
+
+## Phase 16 — Households and devices *(real accounts)*
+
+- Three DynamoDB tables, invite codes, a token per device, revocation.
+- **No app code.** Driven entirely from the terminal with curl, exactly
+  the way Phase 8 was.
+- **You'll learn:** token authentication, why you store a hash instead of
+  a secret, and conditional writes.
+
+## Phase 17 — Sync *(the app talks to the cloud)*
+
+- Token storage, syncing on open and on focus, an offline outbox, and
+  merging when two saves collide.
+- **You'll learn:** offline-first design and optimistic concurrency.
+
+## Phase 18 — Many devices *(what this was all for)*
+
+- Invite codes in the UI with a countdown, adding a device, the device
+  list, revoking one.
+- Real two-device conflict testing.
+- **You'll learn:** what distributed state does in practice.
+
+## Phase 19 — Hardening and recovery
+
+- Export and import, PIN reset, CORS locked to the real site, cost
+  alarms, and a plan for history growing too big.
+- **You'll learn:** what separates a demo from something you'd hand to
+  someone else.
+
+## Phase 20 — Insights *(what the beads say)*
+
+- Per-kid and per-reason totals, beads per week, streaks.
+- Nearly free, because Phase 12's history is already the dataset.
+- **You'll learn:** deriving statistics from event data.
 
 ## Progress
 
@@ -173,10 +245,16 @@ never destroyed.
 - [x] Phase 7 — Hello, Lambda *(2026-07-05)*
 - [x] Phase 8 — A real API *(2026-07-05)*
 - [x] Backend review — opaque state API, conflict detection, hardening *(2026-07-24)*
-- [ ] Phase 9 — Connect the app
-- [ ] Phase 10 — Hardening
+- [~] Phases 9 & 10 — superseded by the 2026-07-24 pivot, never built
 - [x] Design pivot — one jar, beads with reasons *(2026-07-06)*
 - [x] Phase 11 — Rewards, reshaped: no-limit jar + milestone rewards *(2026-07-19)*
-- [ ] Phase 12 — Insights
-- [ ] Phase 13 — Family
-- [ ] Phase 14 — Quality of life
+- [x] Design pivot — a jar per kid, beads are money *(2026-07-24, see DESIGN.md)*
+- [ ] Phase 12 — Currency
+- [ ] Phase 13 — Ship it
+- [ ] Phase 14 — People
+- [ ] Phase 15 — Asking
+- [ ] Phase 16 — Households and devices
+- [ ] Phase 17 — Sync
+- [ ] Phase 18 — Many devices
+- [ ] Phase 19 — Hardening and recovery
+- [ ] Phase 20 — Insights

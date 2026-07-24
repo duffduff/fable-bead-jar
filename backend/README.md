@@ -131,9 +131,19 @@ curl -s -X PUT "$API/state/mysynccode1" \
 
 There is no authentication: the sync code *is* the credential, and it
 travels in the URL. Anyone who knows a code can read and overwrite that
-jar, and CORS is still `*`. Rate limiting (20 req/s) and a Lambda
-concurrency cap of 5 are in place so this can't get expensive, but real
-accounts and a tightened origin are Phase 10 work.
+jar, and CORS is still `*`.
+
+Rate limiting (20 req/s on the stage) is the only cost protection in the
+Terraform. A Lambda concurrency cap was *attempted* and rejected: this
+account's total concurrency is 10 (the new-account default, not the usual
+1000) and AWS requires 10 to stay unreserved, so no reservation is
+possible. That account-wide 10 is already a tighter ceiling than we'd
+have set — see the comment in `terraform/main.tf`.
+
+> **This whole API is being replaced.** The 2026-07-24 design pivot
+> (see `../DESIGN.md`) swaps sync codes for households and per-device
+> tokens, and this table and its routes get deleted in Phase 16 rather
+> than carried forward.
 
 ## Why Phase 8 existed
 
