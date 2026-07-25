@@ -1,6 +1,6 @@
 # Bead Jar backend
 
-Serverless API on AWS Lambda. Region: `us-east-1`, account `058264520091`.
+Serverless API on AWS Lambda. Region: `us-east-1`, account `<your-account-id>`.
 
 ## Phase 7 — hello Lambda, deployed by hand *(decommissioned)*
 
@@ -48,7 +48,7 @@ aws lambda create-function \
   --runtime nodejs22.x \
   --handler index.handler \
   --zip-file fileb://function.zip \
-  --role arn:aws:iam::058264520091:role/bead-jar-hello-role
+  --role arn:aws:iam::<your-account-id>:role/bead-jar-hello-role
 ```
 
 **Public URL** — the built-in HTTPS front door. Since October 2025 a
@@ -88,10 +88,13 @@ Everything lives in `terraform/main.tf`: DynamoDB table `bead-jar-data`,
 Lambda `bead-jar-api` (code in `api/index.mjs`), and an API Gateway
 HTTP API with `GET`/`PUT /state/{syncId}` routes.
 
-Live at: https://g4tul8gnh2.execute-api.us-east-1.amazonaws.com
+The endpoint isn't written down here on purpose — this repo is public and
+the API takes writes from anyone who knows the URL. Ask Terraform for it:
 
 ```sh
 cd terraform
+terraform output -raw api_url
+
 terraform plan    # preview what would change
 terraform apply   # make reality match main.tf (also redeploys code changes)
 ```

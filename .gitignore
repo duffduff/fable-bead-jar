@@ -2,6 +2,10 @@
 backend/**/function.zip
 backend/terraform/build/
 
+# local Claude Code permissions — machine-specific, and it accumulates
+# the exact commands we've run (endpoints included).
+.claude/settings.local.json
+
 # terraform working files: plugin cache and state.
 # State can contain secrets — never commit it.
 .terraform/
