@@ -359,6 +359,10 @@ becomes harmless for free, with no locking and no coordination.
 **Balances don't care about clocks.** They're a sum, and a sum is order-independent —
 a tablet with the wrong date still computes the right balance.
 
+**Displaying history does**, and two entries can share a timestamp to the millisecond.
+Sorting falls back to the entry's id when the times are equal: arbitrary, but identical
+on every device, so nobody sees a different jar from the same history.
+
 **Record edits do.** Last-write-wins compares `updatedAt`, so a device with a badly wrong
 clock could win a rename it shouldn't. For a family app, that's an acceptable trade.
 
@@ -473,9 +477,13 @@ What happens to each piece:
 `at: null` ("before today"), and the ledger keeps tolerating that.
 
 **Rewards already earned** → these were *milestones that were never paid for*. They become
-approved requests at a price of **0**, so the trophies survive and nobody wakes up
-bankrupt. Deducting their old `target` retroactively would open the app on a large negative
-balance on day one.
+a purchase that cost **0** beads, so the trophies survive and nobody wakes up bankrupt.
+Deducting their old `target` retroactively would open the app on a large negative balance
+on day one.
+
+> Rewards are a catalogue you buy from repeatedly, not milestones you cross once, so an
+> old earned reward is simply a past purchase — a zero-amount `spend` entry. It doesn't
+> need the request machinery, which is why this works before Phase 15 exists.
 
 **Rewards not yet earned** → `target` becomes `price`. But these mean genuinely different
 things: a 100-bead *milestone* was reachable at 100 beads earned over all time, while a

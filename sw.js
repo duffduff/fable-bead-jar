@@ -3,7 +3,10 @@
 // This file runs in the background, outside any page. The browser sends
 // every network request from our app through the "fetch" handler below.
 
-const CACHE_NAME = "bead-jar-v1";
+// Bumping this name is what retires the old cache: "activate" below
+// deletes every cache that isn't the current one. Change it whenever the
+// app shell changes, or browsers will keep serving the old files.
+const CACHE_NAME = "bead-jar-v2";
 
 // The complete set of files the app needs to run ("the app shell").
 const APP_SHELL = [
@@ -11,6 +14,7 @@ const APP_SHELL = [
   "./index.html",
   "./style.css",
   "./app.js",
+  "./state.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

@@ -172,7 +172,11 @@ by the time Phase 16 starts, the state shape has stopped moving.
 - The bead list becomes an **append-only history**, and balances are
   worked out from it rather than stored. Migration from the old data,
   under a new storage key.
-- A parent redeems a reward directly — no asking flow yet.
+- A reward is redeemed directly — no asking flow yet.
+- The data moves into its own file, `state.js`, which never touches the
+  page. That split is what lets `check.mjs` test the arithmetic with
+  plain `node` and no tooling — and it's the escape hatch if the
+  rendering ever moves to a framework.
 - **You'll learn:** deriving state from a list of events instead of
   storing it, and how to migrate real data without losing it.
 
@@ -249,7 +253,7 @@ by the time Phase 16 starts, the state shape has stopped moving.
 - [x] Design pivot — one jar, beads with reasons *(2026-07-06)*
 - [x] Phase 11 — Rewards, reshaped: no-limit jar + milestone rewards *(2026-07-19)*
 - [x] Design pivot — a jar per kid, beads are money *(2026-07-24, see DESIGN.md)*
-- [ ] Phase 12 — Currency
+- [x] Phase 12 — Currency *(2026-07-24)*
 - [ ] Phase 13 — Ship it
 - [ ] Phase 14 — People
 - [ ] Phase 15 — Asking

@@ -12,63 +12,87 @@
 </head>
 <body>
   <h1>Bead Jar</h1>
-  <p class="subtitle">Do good things, earn beads, fill the jar.</p>
 
-  <div class="jar-zone">
-    <div class="jar"></div>
-    <p id="progress">0 beads</p>
-    <p id="next-reward"></p>
-  </div>
-
-  <section class="panel">
-    <h2>Rewards</h2>
-    <ul id="reward-list"></ul>
-    <button id="new-reward">+ Add a reward</button>
-
-    <form id="reward-form" hidden>
-      <input id="reward-name" placeholder="e.g. Trip to the zoo"
-             maxlength="60" autocomplete="off">
-      <input id="reward-target" type="number" min="1" max="9999"
-             placeholder="beads needed">
-      <p class="form-error" id="reward-error" hidden></p>
+  <!-- Shown once, before there's a jar to show. -->
+  <section id="setup" class="panel" hidden>
+    <h2>Whose jar is this?</h2>
+    <p class="hint" id="setup-note"></p>
+    <form id="setup-form">
+      <input id="setup-name" placeholder="e.g. Ella" maxlength="30" autocomplete="off">
+      <div id="setup-colors"></div>
       <div class="form-buttons">
-        <button type="submit">Create</button>
-        <button type="button" id="cancel-reward">Cancel</button>
+        <button type="submit">Start the jar</button>
       </div>
     </form>
   </section>
 
-  <section class="panel">
-    <h2>Add beads for&hellip;</h2>
+  <main id="app" hidden>
+    <p class="subtitle" id="jar-owner"></p>
 
-    <div class="count-picker">
-      <span>Beads to give:</span>
-      <button id="count-minus" title="Fewer beads">&minus;</button>
-      <span id="count-display">1</span>
-      <button id="count-plus" title="More beads">+</button>
+    <div class="jar-zone">
+      <div class="jar"></div>
+      <p id="progress">0 beads to spend</p>
+      <p id="totals"></p>
     </div>
 
-    <div id="behavior-chips"></div>
-    <button id="new-behavior">+ Add a reason</button>
+    <p class="notice" id="price-notice" hidden>
+      Your rewards have prices now, not targets — worth checking them.
+      <button type="button" id="dismiss-notice">OK</button>
+    </p>
 
-    <form id="behavior-form" hidden>
-      <p class="form-label">Pick a common reason, or type your own:</p>
-      <div id="suggestions"></div>
-      <input id="behavior-name" placeholder="e.g. Homework done"
-             maxlength="40" autocomplete="off">
-      <div id="color-choices"></div>
-      <div class="form-buttons">
-        <button type="submit">Create</button>
-        <button type="button" id="cancel-behavior">Cancel</button>
-      </div>
-    </form>
-  </section>
+    <section class="panel">
+      <h2>Rewards</h2>
+      <ul id="reward-list"></ul>
+      <button id="new-reward">+ Add a reward</button>
 
-  <section class="panel">
-    <h2>History</h2>
-    <ol id="log"></ol>
-  </section>
+      <form id="reward-form" hidden>
+        <input id="reward-name" placeholder="e.g. Trip to the zoo"
+               maxlength="60" autocomplete="off">
+        <input id="reward-price" type="number" min="1" max="9999"
+               placeholder="beads to buy it">
+        <div class="form-buttons">
+          <button type="submit">Create</button>
+          <button type="button" id="cancel-reward">Cancel</button>
+        </div>
+      </form>
+    </section>
 
-  <script src="app.js"></script>
+    <section class="panel">
+      <h2>Add beads for&hellip;</h2>
+
+      <div id="behavior-chips"></div>
+
+      <label class="custom-amount">
+        <input type="checkbox" id="custom-toggle">
+        <span>Give a different amount:</span>
+        <button type="button" id="count-minus" title="Fewer beads">&minus;</button>
+        <span id="count-display">1</span>
+        <button type="button" id="count-plus" title="More beads">+</button>
+      </label>
+
+      <button id="new-behavior">+ Add a reason</button>
+
+      <form id="behavior-form" hidden>
+        <p class="form-label">Pick a common reason, or type your own:</p>
+        <div id="suggestions"></div>
+        <input id="behavior-name" placeholder="e.g. Homework done"
+               maxlength="40" autocomplete="off">
+        <p class="form-label">Worth how many beads?</p>
+        <input id="behavior-value" type="number" min="1" max="99" value="1">
+        <div id="color-choices"></div>
+        <div class="form-buttons">
+          <button type="submit">Create</button>
+          <button type="button" id="cancel-behavior">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>History</h2>
+      <ol id="log"></ol>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

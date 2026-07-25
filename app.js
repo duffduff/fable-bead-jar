@@ -1,202 +1,164 @@
-// The behavior of the Bead Jar app.
+// The behavior of the Bead Jar app: turning the data in state.js into a
+// page, and turning taps back into changes.
 //
-// One shared jar with NO upper limit — it just grows. Every bead is
-// awarded FOR a "behavior" (a named, colored task) and remembers when
-// it was earned. Rewards are milestones: when the bead count crosses
-// a reward's target, that reward is earned (beads are never removed).
+// Beads are money now. You earn them for reasons (each worth a set
+// number) and spend them on rewards (each with a price). The jar shows
+// what's left to spend, and a running total shows everything ever
+// earned — so a big purchase empties the jar without erasing the effort.
 
-// --- Settings ---
-const BEAD_COLORS = ["red", "blue", "yellow", "green", "purple"];
-const MAX_AWARD = 10;   // most beads you can give in one go
-const COMMON_REASONS = [
-  "Homework done", "Cleaned room", "Helped a sibling", "Brushed teeth",
-  "Read a book", "Good listening", "Made the bed", "Shared nicely",
-  "Kind words", "Tried something new",
-];
-const STORAGE_KEY = "bead-jar-v3";
-const OLD_MULTI_JAR_KEY = "bead-jar-data";   // Phase 4-8 format
-const OLD_COUNT_KEY = "bead-jar-count";      // Phase 3 format
+import {
+  BEAD_COLORS, COMMON_REASONS,
+  loadState, saveState, readOldData, buildFresh, buildFromOld,
+  addBehavior, addReward, archiveReward, awardBeads, redeemReward, reverseEntry,
+  balance, lifetimeEarned, rewardsEnjoyed, entriesFor, jarBeads,
+  activeBehaviors, rewardsFor, behaviorById,
+} from "./state.js";
+
+const MAX_AWARD = 20;                       // most beads one tap can give
+const PRICE_NOTICE_KEY = "bead-jar-price-check";   // a note to self, not household data
 
 // --- Grab the page elements we need ---
+const setupSection = document.querySelector("#setup");
+const setupNote = document.querySelector("#setup-note");
+const setupForm = document.querySelector("#setup-form");
+const setupName = document.querySelector("#setup-name");
+const setupColors = document.querySelector("#setup-colors");
+
+const appSection = document.querySelector("#app");
+const ownerEl = document.querySelector("#jar-owner");
 const jar = document.querySelector(".jar");
 const jarZone = document.querySelector(".jar-zone");
 const progress = document.querySelector("#progress");
-const nextRewardEl = document.querySelector("#next-reward");
+const totalsEl = document.querySelector("#totals");
+const priceNotice = document.querySelector("#price-notice");
+const dismissNotice = document.querySelector("#dismiss-notice");
+
 const rewardListEl = document.querySelector("#reward-list");
 const newRewardButton = document.querySelector("#new-reward");
 const rewardForm = document.querySelector("#reward-form");
 const rewardNameInput = document.querySelector("#reward-name");
-const rewardTargetInput = document.querySelector("#reward-target");
-const rewardError = document.querySelector("#reward-error");
+const rewardPriceInput = document.querySelector("#reward-price");
 const cancelRewardButton = document.querySelector("#cancel-reward");
+
 const chipsEl = document.querySelector("#behavior-chips");
+const customToggle = document.querySelector("#custom-toggle");
 const countMinus = document.querySelector("#count-minus");
 const countPlus = document.querySelector("#count-plus");
 const countDisplay = document.querySelector("#count-display");
+
 const suggestionsEl = document.querySelector("#suggestions");
 const newBehaviorButton = document.querySelector("#new-behavior");
 const behaviorForm = document.querySelector("#behavior-form");
 const nameInput = document.querySelector("#behavior-name");
+const valueInput = document.querySelector("#behavior-value");
 const colorChoices = document.querySelector("#color-choices");
 const cancelButton = document.querySelector("#cancel-behavior");
+
 const logEl = document.querySelector("#log");
 
-// --- State ---
-// {
-//   behaviors: [{ id, name, color }]
-//   beads:     [{ id, behaviorId, at }]     at = ISO time, null if migrated
-//   rewards:   [{ id, name, target, earnedAt }]   earnedAt = ISO time or null
-// }
+// --- What the app is currently looking at ---
 let state = loadState();
-let chosenColor = BEAD_COLORS[0];   // color picked in the new-behavior form
-let awardCount = 1;                 // how many beads the next chip click gives
+let whoseJar = null;          // Phase 14 adds more people to switch between
+let chosenColor = BEAD_COLORS[0];
+let setupColor = BEAD_COLORS[0];
+let customAmount = 1;
 
-// --- Storage ---
-
-function freshState() {
-  return { version: 4, behaviors: [], beads: [], rewards: [] };
-}
-
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const data = JSON.parse(raw);
-      if (data && Array.isArray(data.behaviors) && Array.isArray(data.beads)) {
-        return upgradeState(data);
-      }
-    } catch (error) {
-      // Broken saved data: fall through and start over.
-    }
-  }
-  return migrateOldData();
-}
-
-// v3 saves had a goal (an upper limit) and no rewards. The goal becomes
-// the first reward, so the target you were chasing isn't lost.
-function upgradeState(data) {
-  if (!Array.isArray(data.rewards)) {
-    data.rewards = [];
-    if (Number(data.goal) >= 1) {
-      data.rewards.push({
-        id: 1,
-        name: "Fill the jar",
-        target: Math.floor(data.goal),
-        earnedAt: data.beads.length >= data.goal ? new Date().toISOString() : null,
-      });
-    }
-  }
-  delete data.goal;
-  data.version = 4;
-  return data;
-}
-
-// Convert saves from much older versions of the app so no beads are lost.
-function migrateOldData() {
-  const migrated = freshState();
-
-  // Phase 4-8 format: a list of jars. Each old jar becomes a behavior,
-  // and its beads become beads earned for that behavior.
-  try {
-    const oldJars = JSON.parse(localStorage.getItem(OLD_MULTI_JAR_KEY));
-    if (Array.isArray(oldJars) && oldJars.length > 0) {
-      for (const oldJar of oldJars) {
-        const behavior = {
-          id: migrated.behaviors.length + 1,
-          name: oldJar.name,
-          color: oldJar.color,
-        };
-        migrated.behaviors.push(behavior);
-        for (let i = 0; i < oldJar.beads; i++) {
-          migrated.beads.push({
-            id: migrated.beads.length + 1,
-            behaviorId: behavior.id,
-            at: null,   // we never knew when these were earned
-          });
-        }
-      }
-      return migrated;
-    }
-  } catch (error) { /* fall through */ }
-
-  // Phase 3 format: a bare count.
-  const oldCount = Number(localStorage.getItem(OLD_COUNT_KEY));
-  if (oldCount >= 1) {
-    migrated.behaviors.push({ id: 1, name: "Good deeds", color: "blue" });
-    for (let i = 0; i < Math.floor(oldCount); i++) {
-      migrated.beads.push({ id: i + 1, behaviorId: 1, at: null });
-    }
-  }
-  return migrated;
-}
-
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-// --- Actions: change the data, then save and redraw ---
-
-function addBeads(behaviorId, count) {
-  let nextId = Math.max(0, ...state.beads.map(b => b.id)) + 1;
-  const at = new Date().toISOString();
-  for (let i = 0; i < count; i++) {
-    state.beads.push({ id: nextId++, behaviorId, at });
-  }
-
-  // Did this award push us across any reward targets?
-  const justEarned = state.rewards.filter(
-    r => !r.earnedAt && state.beads.length >= r.target
-  );
-  for (const reward of justEarned) {
-    reward.earnedAt = at;
-  }
-
-  save();
+// --- Saving ---
+// Only ever called after something actually changed. The old app saved on
+// startup too, which meant a failed load instantly overwrote the real data.
+function commit() {
+  saveState(state);
   render();
+}
 
-  // Animate the new beads dropping in one after another.
-  const newBeads = [...jar.children].slice(-count);
-  newBeads.forEach((bead, i) => {
+// --- Setup: the one screen you see before there's a jar ---
+
+function showSetup() {
+  const old = readOldData();
+  setupNote.textContent = old
+    ? "You already have beads saved. Tell us whose jar this is and they'll " +
+      "all move across — nothing is lost."
+    : "Beads get earned for doing good things, and spent on rewards.";
+
+  for (const color of BEAD_COLORS) {
+    const swatch = document.createElement("button");
+    swatch.type = "button";
+    swatch.className = "swatch " + color + (color === setupColor ? " selected" : "");
+    swatch.title = color;
+    swatch.addEventListener("click", () => {
+      setupColor = color;
+      setupColors.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
+      swatch.classList.add("selected");
+    });
+    setupColors.appendChild(swatch);
+  }
+
+  setupSection.hidden = false;
+  setupName.focus();
+}
+
+setupForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = setupName.value.trim();
+  if (!name) return;
+
+  const old = readOldData();
+  if (old) {
+    state = buildFromOld(old, { name, color: setupColor });
+    // The old numbers were targets to cross; they're prices now, which is
+    // a different thing. Ask for a look once the jar is on screen.
+    if (old.rewards.length > 0) localStorage.setItem(PRICE_NOTICE_KEY, "1");
+  } else {
+    state = buildFresh({ name, color: setupColor });
+  }
+
+  setupSection.hidden = true;
+  whoseJar = state.profiles[0].id;
+  appSection.hidden = false;
+  commit();
+});
+
+// --- Actions ---
+
+function amountFor(behavior) {
+  return customToggle.checked ? customAmount : behavior.value;
+}
+
+function giveBeads(behavior) {
+  const amount = amountFor(behavior);
+  awardBeads(state, { profileId: whoseJar, behaviorId: behavior.id, amount });
+  commit();
+
+  // Animate the beads that just landed, one after another.
+  const landed = [...jar.children].slice(-amount);
+  landed.forEach((bead, i) => {
     bead.classList.add("drop");
-    bead.style.animationDelay = (i * 0.09) + "s";
+    bead.style.animationDelay = i * 0.09 + "s";
   });
+}
 
-  if (justEarned.length > 0) {
-    setTimeout(celebrate, 400 + count * 90);
+function buyReward(reward) {
+  const left = balance(state, whoseJar);
+
+  // Never blocked, only warned: two people approving at once could always
+  // overdraw anyway, so the app is honest about it rather than pretending.
+  if (reward.price > left) {
+    const after = left - reward.price;
+    const ok = confirm(
+      `"${reward.name}" costs ${reward.price} beads and there are only ` +
+      `${left}. That leaves ${after}. Go ahead anyway?`
+    );
+    if (!ok) return;
   }
 
-  setAwardCount(1);   // reset so the next award is deliberate
+  redeemReward(state, { profileId: whoseJar, rewardId: reward.id });
+  commit();
+  celebrate();
 }
 
-function setAwardCount(n) {
-  awardCount = Math.max(1, Math.min(MAX_AWARD, n));
-  countDisplay.textContent = awardCount;
-}
-
-function removeBead(beadId) {
-  // Earned rewards stay earned — history is history.
-  state.beads = state.beads.filter(b => b.id !== beadId);
-  save();
-  render();
-}
-
-function addBehavior(name, color) {
-  const id = Math.max(0, ...state.behaviors.map(b => b.id)) + 1;
-  state.behaviors.push({ id, name, color });
-  save();
-  render();
-}
-
-function addReward(name, target) {
-  const id = Math.max(0, ...state.rewards.map(r => r.id)) + 1;
-  state.rewards.push({ id, name, target, earnedAt: null });
-  save();
-  render();
-}
-
-function removeReward(rewardId) {
-  state.rewards = state.rewards.filter(r => r.id !== rewardId);
-  save();
+function setCustomAmount(n) {
+  customAmount = Math.max(1, Math.min(MAX_AWARD, n));
+  countDisplay.textContent = customAmount;
   render();
 }
 
@@ -209,17 +171,13 @@ function celebrate() {
     piece.style.left = Math.random() * 100 + "%";
     piece.style.background = colors[Math.floor(Math.random() * colors.length)];
     piece.style.animationDelay = Math.random() * 0.4 + "s";
-    piece.style.setProperty("--drift", (Math.random() * 160 - 80) + "px");
+    piece.style.setProperty("--drift", Math.random() * 160 - 80 + "px");
     jarZone.appendChild(piece);
     setTimeout(() => piece.remove(), 3000);
   }
 }
 
 // --- Rendering: rebuild the screen from the data ---
-
-function behaviorById(id) {
-  return state.behaviors.find(b => b.id === id);
-}
 
 function formatWhen(iso) {
   return new Date(iso).toLocaleString(undefined, {
@@ -228,143 +186,208 @@ function formatWhen(iso) {
   });
 }
 
+function plural(n, word) {
+  return n + " " + word + (Math.abs(n) === 1 ? "" : "s");
+}
+
 function render() {
-  const beadCount = state.beads.length;
+  const profile = state.profiles.find((p) => p.id === whoseJar);
+  const left = balance(state, whoseJar);
 
-  // The jar: one circle per bead, colored by its behavior.
+  ownerEl.textContent = profile ? profile.name + "'s jar" : "";
+
+  // The jar: one circle per bead still unspent. jarBeads() hands them back
+  // newest first; the jar stacks from the bottom, so oldest goes in first.
   jar.innerHTML = "";
-  for (const bead of state.beads) {
-    const el = document.createElement("div");
-    const behavior = behaviorById(bead.behaviorId);
-    el.className = "bead " + (behavior ? behavior.color : "blue");
-    jar.appendChild(el);
+  for (const color of jarBeads(state, whoseJar).reverse()) {
+    const bead = document.createElement("div");
+    bead.className = "bead " + color;
+    jar.appendChild(bead);
   }
 
-  progress.textContent = beadCount + (beadCount === 1 ? " bead" : " beads");
+  progress.textContent = left < 0
+    ? "owing " + plural(-left, "bead")
+    : plural(left, "bead") + " to spend";
+  progress.classList.toggle("in-the-red", left < 0);
 
-  // The next milestone to chase: the closest unearned reward.
-  const upcoming = state.rewards
-    .filter(r => !r.earnedAt)
-    .sort((a, b) => a.target - b.target);
-  if (upcoming.length > 0) {
-    const next = upcoming[0];
-    nextRewardEl.textContent =
-      "🎁 " + next.name + ": " + (next.target - beadCount) + " more beads";
-  } else if (state.rewards.length > 0) {
-    nextRewardEl.textContent = "🏆 All rewards earned — add a new one!";
-  } else {
-    nextRewardEl.textContent = "Add a reward to aim for!";
-  }
+  const enjoyed = rewardsEnjoyed(state, whoseJar);
+  totalsEl.textContent =
+    "🏆 " + plural(lifetimeEarned(state, whoseJar), "bead") + " earned all-time" +
+    (enjoyed > 0 ? "   🎁 " + plural(enjoyed, "reward") + " enjoyed" : "");
 
-  // The rewards list: upcoming first (nearest target on top), earned after.
+  priceNotice.hidden = localStorage.getItem(PRICE_NOTICE_KEY) !== "1";
+
+  renderRewards(left);
+  renderChips();
+  renderHistory();
+}
+
+function renderRewards(left) {
   rewardListEl.innerHTML = "";
-  if (state.rewards.length === 0) {
+
+  const rewards = rewardsFor(state, whoseJar);
+  if (rewards.length === 0) {
     const li = document.createElement("li");
     li.className = "hint";
-    li.textContent = "No rewards yet.";
+    li.textContent = "No rewards yet — add something worth saving for.";
     rewardListEl.appendChild(li);
+    return;
   }
-  const earned = state.rewards
-    .filter(r => r.earnedAt)
-    .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt));
-  for (const reward of [...upcoming, ...earned]) {
+
+  // What they can buy right now goes first, so the list doesn't open as a
+  // wall of things they can't have. Cheapest first within each group.
+  const affordable = rewards.filter((r) => r.price <= left).sort((a, b) => a.price - b.price);
+  const saving = rewards.filter((r) => r.price > left).sort((a, b) => a.price - b.price);
+
+  for (const reward of [...affordable, ...saving]) {
+    const canAfford = reward.price <= left;
     const li = document.createElement("li");
-    li.className = "reward" + (reward.earnedAt ? " earned" : "");
+    li.className = "reward" + (canAfford ? " affordable" : "");
 
     const title = document.createElement("div");
     title.className = "reward-title";
 
     const name = document.createElement("span");
     name.className = "reward-name";
-    name.textContent = (reward.earnedAt ? "🏆 " : "🎁 ") + reward.name;
+    name.textContent = "🎁 " + reward.name;
 
-    const status = document.createElement("span");
-    status.className = "reward-status";
-    status.textContent = reward.earnedAt
-      ? "earned " + formatWhen(reward.earnedAt)
-      : Math.min(beadCount, reward.target) + " / " + reward.target;
+    const price = document.createElement("span");
+    price.className = "reward-price";
+    price.textContent = reward.price;
 
     const remove = document.createElement("button");
     remove.className = "log-remove";
     remove.textContent = "×";
     remove.title = "Remove this reward";
-    remove.addEventListener("click", () => removeReward(reward.id));
+    remove.addEventListener("click", () => {
+      archiveReward(state, reward.id);
+      commit();
+    });
 
-    title.append(name, status, remove);
+    title.append(name, price, remove);
     li.appendChild(title);
 
-    if (!reward.earnedAt) {
+    if (canAfford) {
+      const buy = document.createElement("button");
+      buy.className = "exchange";
+      buy.textContent = "Exchange";
+      buy.addEventListener("click", () => buyReward(reward));
+      li.appendChild(buy);
+    } else {
+      const status = document.createElement("p");
+      status.className = "reward-status";
+      // The true shortfall, debt included: owing 5 with a price of 10
+      // means 15 more beads, not 10.
+      status.textContent = plural(reward.price - left, "bead") + " to go";
+      li.appendChild(status);
+
       const bar = document.createElement("div");
       bar.className = "bar";
       const fill = document.createElement("div");
       fill.className = "bar-fill";
-      fill.style.width = Math.min(100, (beadCount / reward.target) * 100) + "%";
+      // The bar itself can't run backwards, so debt just reads as empty.
+      fill.style.width = Math.max(0, (left / reward.price) * 100) + "%";
       bar.appendChild(fill);
       li.appendChild(bar);
     }
 
     rewardListEl.appendChild(li);
   }
+}
 
-  // One chip per behavior — clicking it awards beads.
+function renderChips() {
   chipsEl.innerHTML = "";
-  if (state.behaviors.length === 0) {
+  const behaviors = activeBehaviors(state);
+
+  if (behaviors.length === 0) {
     const hint = document.createElement("p");
     hint.className = "hint";
-    hint.textContent = "Create your first behavior to start earning beads.";
+    hint.textContent = "Add a reason to start earning beads.";
     chipsEl.appendChild(hint);
+    return;
   }
-  for (const behavior of state.behaviors) {
+
+  for (const behavior of behaviors) {
     const chip = document.createElement("button");
     chip.className = "chip " + behavior.color;
-    chip.textContent = behavior.name;
-    chip.addEventListener("click", () => addBeads(behavior.id, awardCount));
+    chip.textContent = behavior.name + " +" + amountFor(behavior);
+    chip.addEventListener("click", () => giveBeads(behavior));
     chipsEl.appendChild(chip);
   }
+}
 
-  // The history: newest first. Each row can remove its bead.
+function renderHistory() {
   logEl.innerHTML = "";
-  if (state.beads.length === 0) {
+  const entries = entriesFor(state, whoseJar);
+
+  if (entries.length === 0) {
     const li = document.createElement("li");
     li.className = "hint";
-    li.textContent = "No beads yet.";
+    li.textContent = "Nothing yet.";
     logEl.appendChild(li);
+    return;
   }
-  for (const bead of [...state.beads].reverse()) {
-    const behavior = behaviorById(bead.behaviorId);
+
+  for (const entry of entries) {
     const li = document.createElement("li");
+    const behavior = behaviorById(state, entry.behaviorId);
 
     const dot = document.createElement("span");
-    dot.className = "dot " + (behavior ? behavior.color : "blue");
-
     const name = document.createElement("span");
     name.className = "log-name";
-    name.textContent = behavior ? behavior.name : "(unknown)";
+
+    if (entry.type === "earn") {
+      dot.className = "dot " + (behavior ? behavior.color : "blue");
+      name.textContent = behavior ? behavior.name : "(unknown)";
+    } else if (entry.type === "spend") {
+      dot.className = "dot gift";
+      dot.textContent = "🎁";
+      name.textContent = entry.rewardName || "a reward";
+    } else {
+      dot.className = "dot adjust";
+      name.textContent = "Undone";
+    }
+
+    const amount = document.createElement("span");
+    amount.className = "log-amount " + (entry.amount < 0 ? "minus" : "plus");
+    amount.textContent = (entry.amount > 0 ? "+" : "") + entry.amount;
 
     const when = document.createElement("time");
-    when.textContent = bead.at ? formatWhen(bead.at) : "before today";
+    when.textContent = entry.at ? formatWhen(entry.at) : "before today";
 
-    const remove = document.createElement("button");
-    remove.className = "log-remove";
-    remove.textContent = "×";
-    remove.title = "Remove this bead";
-    remove.addEventListener("click", () => removeBead(bead.id));
+    li.append(dot, name, amount, when);
 
-    li.append(dot, name, when, remove);
+    // An undo can't itself be undone — otherwise you could ping-pong
+    // forever and the history would say nothing useful. Nor can something
+    // that's already been undone, so the button goes away rather than
+    // sitting there doing nothing.
+    const alreadyUndone = state.ledger.some((e) => e.id === "reverse:" + entry.id);
+    if (entry.type !== "adjust" && !alreadyUndone) {
+      const undo = document.createElement("button");
+      undo.className = "log-remove";
+      undo.textContent = "×";
+      undo.title = "Undo this";
+      undo.addEventListener("click", () => {
+        reverseEntry(state, entry.id);
+        commit();
+      });
+      li.appendChild(undo);
+    }
+
     logEl.appendChild(li);
   }
 }
 
-// --- The count stepper ---
+// --- The custom-amount stepper ---
 
-countMinus.addEventListener("click", () => setAwardCount(awardCount - 1));
-countPlus.addEventListener("click", () => setAwardCount(awardCount + 1));
+customToggle.addEventListener("change", render);
+countMinus.addEventListener("click", () => setCustomAmount(customAmount - 1));
+countPlus.addEventListener("click", () => setCustomAmount(customAmount + 1));
 
 // --- The new-reward form ---
 
 newRewardButton.addEventListener("click", () => {
   rewardForm.hidden = false;
-  rewardError.hidden = true;
   rewardNameInput.focus();
 });
 
@@ -375,31 +398,24 @@ cancelRewardButton.addEventListener("click", () => {
 rewardForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = rewardNameInput.value.trim();
-  const target = Math.floor(Number(rewardTargetInput.value));
-  if (!name || !(target >= 1)) return;
+  const price = Math.floor(Number(rewardPriceInput.value));
+  if (!name || !(price >= 1)) return;
 
-  // A target we've already passed wouldn't be something to chase.
-  if (target <= state.beads.length) {
-    rewardError.textContent =
-      "The jar already has " + state.beads.length +
-      " beads — pick a bigger target.";
-    rewardError.hidden = false;
-    return;
-  }
-
-  addReward(name, target);
+  addReward(state, { name, price });
   rewardNameInput.value = "";
-  rewardTargetInput.value = "";
+  rewardPriceInput.value = "";
   rewardForm.hidden = true;
+  commit();
 });
 
-// --- The new-behavior form ---
+// --- The new-reason form ---
 
-// Offer common reasons the family hasn't added yet; tapping one
-// fills the name box (you can still edit it before creating).
+// Offer common reasons that haven't been added yet; tapping one fills the
+// name box, and you can still edit it before creating.
 function renderSuggestions() {
   suggestionsEl.innerHTML = "";
-  const existing = state.behaviors.map(b => b.name.toLowerCase());
+  const existing = state.behaviors.map((b) => b.name.toLowerCase());
+
   for (const reason of COMMON_REASONS) {
     if (existing.includes(reason.toLowerCase())) continue;
     const suggestion = document.createElement("button");
@@ -427,29 +443,44 @@ cancelButton.addEventListener("click", () => {
 behaviorForm.addEventListener("submit", (event) => {
   event.preventDefault();   // forms reload the page by default — stop that
   const name = nameInput.value.trim();
-  if (!name) return;
-  addBehavior(name, chosenColor);
+  const value = Math.floor(Number(valueInput.value));
+  if (!name || !(value >= 1)) return;
+
+  addBehavior(state, { name, color: chosenColor, value });
   nameInput.value = "";
+  valueInput.value = "1";
   behaviorForm.hidden = true;
+  commit();
 });
 
-// Build the five color swatches once.
+// Build the five colour swatches once.
 for (const color of BEAD_COLORS) {
   const swatch = document.createElement("button");
-  swatch.type = "button";   // NOT a submit button
+  swatch.type = "button";
   swatch.className = "swatch " + color + (color === chosenColor ? " selected" : "");
   swatch.title = color;
   swatch.addEventListener("click", () => {
     chosenColor = color;
-    colorChoices.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
+    colorChoices.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
     swatch.classList.add("selected");
   });
   colorChoices.appendChild(swatch);
 }
 
+dismissNotice.addEventListener("click", () => {
+  localStorage.removeItem(PRICE_NOTICE_KEY);
+  priceNotice.hidden = true;
+});
+
 // --- Start up ---
-save();     // if loadState() just migrated or upgraded, pin the result
-render();
+
+if (state && state.profiles.length > 0) {
+  whoseJar = state.profiles[0].id;
+  appSection.hidden = false;
+  render();
+} else {
+  showSetup();
+}
 
 // Register the service worker (sw.js) so the app works offline.
 if ("serviceWorker" in navigator) {

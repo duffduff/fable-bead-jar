@@ -55,9 +55,35 @@ body {
   margin: 0 0 2px;
 }
 
-#next-reward {
+#progress.in-the-red {
+  color: #d64545;
+}
+
+/* Everything ever earned, which spending never reduces. */
+#totals {
   color: #8a8378;
+  font-size: 0.9rem;
   margin: 0 0 8px;
+  white-space: pre-wrap;       /* keeps the gap between the two figures */
+}
+
+/* A one-off note after migrating, dismissed with its own button. */
+.notice {
+  max-width: 520px;
+  margin: 0 auto 8px;
+  padding: 10px 14px;
+  background: #fdf3d8;
+  border: 1px solid #e8d9a8;
+  border-radius: 12px;
+  color: #6b5a2a;
+  font-size: 0.9rem;
+}
+
+.notice button {
+  margin-left: 10px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  background: #b99b3e;
 }
 
 .bead {
@@ -104,7 +130,7 @@ body {
   font-style: italic;
 }
 
-/* --- Rewards: milestones the growing jar reaches --- */
+/* --- Rewards: things beads are spent on --- */
 
 #reward-list {
   list-style: none;
@@ -137,10 +163,29 @@ body {
 .reward-status {
   color: #8a8378;
   font-size: 0.85rem;
+  margin: 6px 0 0;
 }
 
-.reward.earned .reward-name {
-  color: #a3781f;
+/* The price, as a little coin-ish badge. */
+.reward-price {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #eee7da;
+  color: #6b5a2a;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.reward.affordable .reward-price {
+  background: #d9eddf;
+  color: #2f6b43;
+}
+
+.exchange {
+  margin-top: 8px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
 }
 
 .bar {
@@ -169,7 +214,7 @@ body {
   border-top: 1px solid #e4ddd1;
 }
 
-#reward-name, #reward-target {
+#reward-name, #reward-price, #behavior-value, #setup-name {
   font-size: 1rem;
   padding: 10px 12px;
   border: 1px solid #c9c3b8;
@@ -178,8 +223,10 @@ body {
   margin-bottom: 10px;
 }
 
-#reward-name  { width: min(100%, 300px); }
-#reward-target { width: min(100%, 160px); }
+#reward-name    { width: min(100%, 300px); }
+#reward-price   { width: min(100%, 160px); }
+#behavior-value { width: 90px; }
+#setup-name     { width: min(100%, 260px); }
 
 .form-error {
   color: #d64545;
@@ -187,24 +234,38 @@ body {
   margin: 0 0 10px;
 }
 
-/* --- The count stepper: how many beads the next award gives --- */
+/* --- Overriding a reason's value for a one-off award --- */
 
-.count-picker {
+.custom-amount {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
-  color: #5a5348;
+  color: #8a8378;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
-.count-picker button {
-  width: 34px;
-  height: 34px;
+.custom-amount button {
+  width: 30px;
+  height: 30px;
   padding: 0;
   border-radius: 50%;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
+}
+
+/* Until the box is ticked, a tap gives whatever the reason is worth,
+   so the stepper is visibly out of play. */
+.custom-amount:not(:has(:checked)) button {
+  background: #c9c3b8;
+  cursor: default;
+  pointer-events: none;
+}
+
+.custom-amount:not(:has(:checked)) #count-display {
+  color: #c9c3b8;
 }
 
 #count-display {
@@ -305,7 +366,7 @@ button:disabled {
   box-sizing: border-box;
 }
 
-#color-choices {
+#color-choices, #setup-colors {
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -367,10 +428,31 @@ button:disabled {
   flex-shrink: 0;
 }
 
+/* Spends and undos aren't a colour from a reason, so they get a mark
+   of their own instead of a coloured circle. */
+.dot.gift {
+  background: none;
+  font-size: 13px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.dot.adjust {
+  background: #dcd6ca;
+}
+
 .log-name {
   flex: 1;
   color: #5a5348;
 }
+
+.log-amount {
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;   /* digits line up down the column */
+}
+
+.log-amount.plus  { color: #3d9c50; }
+.log-amount.minus { color: #b06a2e; }
 
 #log time {
   color: #8a8378;
