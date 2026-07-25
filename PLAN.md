@@ -188,6 +188,19 @@ by the time Phase 16 starts, the state shape has stopped moving.
   already using.
 - **You'll learn:** static hosting, and what "secure context" means.
 
+**Live at <https://duffduff.github.io/fable-bead-jar/>**, served from
+`main` at the repo root — no build step, the files go up as they are.
+
+Two things only work here, and never worked on the LAN:
+`crypto.randomUUID` (it needs a *secure context*, so `https://` or
+`localhost` — a plain `http://192.168.x.x` falls back), and the service
+worker, which needs HTTPS too. Pulling the network and reloading now
+gives the whole app back from cache.
+
+Going public meant the AWS account id and the live API endpoint had to
+come out of `backend/README.md` first — the API still takes writes from
+anyone who knows the URL.
+
 ## Phase 14 — People *(profiles and roles)*
 
 - A jar per kid. Parents see everyone; kids see their own.
@@ -254,7 +267,7 @@ by the time Phase 16 starts, the state shape has stopped moving.
 - [x] Phase 11 — Rewards, reshaped: no-limit jar + milestone rewards *(2026-07-19)*
 - [x] Design pivot — a jar per kid, beads are money *(2026-07-24, see DESIGN.md)*
 - [x] Phase 12 — Currency *(2026-07-24)*
-- [ ] Phase 13 — Ship it
+- [x] Phase 13 — Ship it *(2026-07-24)*
 - [ ] Phase 14 — People
 - [ ] Phase 15 — Asking
 - [ ] Phase 16 — Households and devices
